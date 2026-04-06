@@ -761,6 +761,9 @@ it('creates and claims ghost accounts inside the current project', function () {
     Queue::fake();
 
     $project = Project::factory()->create();
+    $project->authSettings()->update([
+        'ghost_accounts_enabled' => true,
+    ]);
 
     $createResponse = $this->postJson('/api/v1/auth/ghost-accounts', [
         'email' => 'ghost@example.com',
@@ -792,6 +795,33 @@ it('creates and claims ghost accounts inside the current project', function () {
         ->assertJsonPath('data.user.is_ghost', false);
 
     expect(ProjectUser::query()->whereBelongsTo($project)->where('email', 'ghost@example.com')->firstOrFail()->claimed_at)->not->toBeNull();
+});
+
+it('rejects ghost account creation and claiming when ghost accounts are disabled', function () {
+    $project = Project::factory()->create();
+
+    ProjectUser::factory()->for($project)->create([
+        'email' => 'ghost-disabled@example.com',
+        'is_ghost' => true,
+    ]);
+
+    $this->postJson('/api/v1/auth/ghost-accounts', [
+        'email' => 'ghost-disabled@example.com',
+        'first_name' => 'Ghost',
+    ], projectHeaders($project))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['email'])
+        ->assertJsonPath('errors.email.0', 'Ghost accounts are disabled for this project.');
+
+    $this->postJson('/api/v1/auth/ghost-accounts/claim', [
+        'email' => 'ghost-disabled@example.com',
+        'otp_code' => '123456',
+        'password' => 'new-password',
+        'password_confirmation' => 'new-password',
+    ], projectHeaders($project))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['email'])
+        ->assertJsonPath('errors.email.0', 'Ghost accounts are disabled for this project.');
 });
 
 it('applies project-specific forgot password rate limits and logs auth events', function () {

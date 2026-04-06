@@ -73,6 +73,12 @@
         <x-slot name="heading">Sample Requests And Responses</x-slot>
         <x-slot name="description">These examples match the actual phase 3 and phase 4 API behavior in this application.</x-slot>
 
+        <div class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
+            Ghost account endpoints are available only when <span class="font-semibold">ghost_accounts_enabled</span> is turned on for this project.
+            The current setting is
+            <span class="font-semibold">{{ $project->authSettings?->ghost_accounts_enabled ? 'enabled' : 'disabled' }}</span>.
+        </div>
+
         <div class="grid gap-6 xl:grid-cols-2">
             @foreach ([
                 'Register' => [

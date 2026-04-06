@@ -103,6 +103,14 @@ class GhostAccountService
      */
     public function claim(Project $project, array $attributes, Request $request): array
     {
+        $settings = $project->authSettings ?? $project->authSettings()->firstOrCreate([], ProjectAuthSetting::defaults());
+
+        if (! $settings->ghost_accounts_enabled) {
+            throw ValidationException::withMessages([
+                'email' => ['Ghost accounts are disabled for this project.'],
+            ]);
+        }
+
         /** @var ProjectUser|null $ghostAccount */
         $ghostAccount = ProjectUser::query()
             ->whereBelongsTo($project)

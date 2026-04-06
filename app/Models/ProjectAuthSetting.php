@@ -62,7 +62,7 @@ class ProjectAuthSetting extends Model
             'reset_password_ttl_minutes' => 60,
             'forgot_password_requests_per_hour' => 5,
             'email_verification_enabled' => false,
-            'ghost_accounts_enabled' => true,
+            'ghost_accounts_enabled' => false,
             'max_ghost_accounts_per_email' => null,
             'magic_link_enabled' => false,
             'login_identifier_mode' => ProjectLoginIdentifierMode::Email,

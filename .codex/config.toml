@@ -2,3 +2,6 @@
 command = "php"
 args = ["artisan", "boost:mcp"]
 cwd = "/home/abdullahelferjani/Auth-as-a-Service"
+
+[mcp_servers.laravel-boost.tools.search-docs]
+approval_mode = "approve"
