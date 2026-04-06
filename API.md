@@ -1,653 +1,606 @@
-# Auth-as-a-Service API Documentation
+# Auth-as-a-Service API Reference
+
+This document describes the current public API implemented by the project. The machine-readable contract lives in [`api.json`](/home/abdullahelferjani/Auth-as-a-Service/api.json).
 
 ## Base URL
 
+```text
+http://127.0.0.1:8000/api/v1/auth
 ```
-https://your-domain.com/api/v1
-```
 
-## Authentication
+## Required Headers
 
-All API requests require the following headers:
-
-### Required Headers
+All endpoints require:
 
 ```http
 X-Project-Key: {project_api_key}
-Content-Type: application/json
 Accept: application/json
+Content-Type: application/json
 ```
 
-### Authentication Token
-
-For authenticated endpoints:
+Authenticated endpoints also require:
 
 ```http
 Authorization: Bearer {access_token}
 ```
 
-## API Endpoints
+## Shared Response Shapes
 
-### 1. User Registration
-
-Register a new user for the project.
-
-**Endpoint:** `POST /auth/register`
-
-**Request Body:**
+### Token Response
 
 ```json
 {
-    "name": "John Doe",
-    "email": "john@example.com",
-    "password": "secret123",
-    "password_confirmation": "secret123"
-}
-```
-
-**Response (201 Created):**
-
-```json
-{
-    "message": "Registration successful",
-    "data": {
-        "user": {
-            "id": "uuid",
-            "name": "John Doe",
-            "email": "john@example.com",
-            "email_verified_at": null,
-            "created_at": "2024-01-01T00:00:00.000000Z",
-            "updated_at": "2024-01-01T00:00:00.000000Z"
-        },
-        "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...",
-        "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+  "data": {
+    "token_type": "Bearer",
+    "access_token": "plain-text-access-token",
+    "refresh_token": "plain-text-refresh-token",
+    "expires_at": "2026-04-06T13:00:00Z",
+    "expires_in_seconds": 3600,
+    "refresh_token_expires_at": "2026-05-06T12:00:00Z",
+    "refresh_token_expires_in_seconds": 2592000,
+    "user": {
+      "id": "uuid",
+      "project_id": "uuid",
+      "email": "user@example.com",
+      "first_name": "Jane",
+      "last_name": "Doe",
+      "phone": "+12025550123",
+      "email_verified_at": "2026-04-06T12:00:00Z",
+      "last_login_at": null,
+      "is_active": true,
+      "is_ghost": false,
+      "claimed_at": null,
+      "invited_at": null,
+      "ghost_source": null,
+      "must_set_password": false,
+      "must_verify_email": false,
+      "created_at": "2026-04-06T12:00:00Z",
+      "updated_at": "2026-04-06T12:00:00Z"
     }
+  }
 }
 ```
 
-**Notes:**
-
-- Email verification may be required depending on project settings
-- Password must be at least 8 characters
-- Email must be unique within the project
-
----
-
-### 2. User Login
-
-Authenticate a user and obtain tokens.
-
-**Endpoint:** `POST /auth/login`
-
-**Request Body:**
+### Pending Registration Response
 
 ```json
 {
-    "email": "john@example.com",
-    "password": "secret123"
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-    "message": "Login successful",
-    "data": {
-        "user": {
-            "id": "uuid",
-            "name": "John Doe",
-            "email": "john@example.com",
-            "email_verified_at": "2024-01-01T00:00:00.000000Z",
-            "created_at": "2024-01-01T00:00:00.000000Z",
-            "updated_at": "2024-01-01T00:00:00.000000Z"
-        },
-        "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...",
-        "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+  "data": {
+    "message": "Registration successful. Verify your email to continue.",
+    "verification_required": true,
+    "verification_purpose": "email_verification",
+    "user": {
+      "id": "uuid",
+      "project_id": "uuid",
+      "email": "user@example.com",
+      "first_name": "Jane",
+      "last_name": "Doe",
+      "phone": "+12025550123",
+      "email_verified_at": null,
+      "last_login_at": null,
+      "is_active": true,
+      "is_ghost": false,
+      "claimed_at": null,
+      "invited_at": null,
+      "ghost_source": null,
+      "must_set_password": false,
+      "must_verify_email": true,
+      "created_at": "2026-04-06T12:00:00Z",
+      "updated_at": "2026-04-06T12:00:00Z"
     }
+  }
 }
 ```
 
-**Error Responses:**
-
-- `401 Unauthorized`: Invalid credentials
-- `403 Forbidden`: Account disabled or suspended
-- `422 Unprocessable Entity`: Validation errors
-
----
-
-### 3. Get Current User
-
-Get authenticated user details.
-
-**Endpoint:** `GET /auth/me`
-
-**Headers:**
-
-```http
-Authorization: Bearer {access_token}
-```
-
-**Response (200 OK):**
+### Generic Accepted Response
 
 ```json
 {
-    "data": {
-        "id": "uuid",
-        "name": "John Doe",
-        "email": "john@example.com",
-        "email_verified_at": "2024-01-01T00:00:00.000000Z",
-        "created_at": "2024-01-01T00:00:00.000000Z",
-        "updated_at": "2024-01-01T00:00:00.000000Z",
-        "project_id": "project-uuid"
-    }
+  "data": {
+    "message": "If the request can be processed, an email will be sent."
+  }
 }
 ```
 
----
-
-### 4. Logout
-
-Revoke the current access token.
-
-**Endpoint:** `POST /auth/logout`
-
-**Headers:**
-
-```http
-Authorization: Bearer {access_token}
-```
-
-**Response (200 OK):**
+### Validation Error
 
 ```json
 {
-    "message": "Successfully logged out"
+  "message": "The given data was invalid.",
+  "errors": {
+    "email": [
+      "The email field is required."
+    ]
+  }
 }
 ```
 
-**Notes:**
+## OTP Purposes
 
-- Invalidates the current access token
-- All refresh tokens for the user remain valid
+- `register_verify`
+- `login_verify`
+- `forgot_password`
+- `ghost_account_claim`
+- `email_verification`
 
----
+## Endpoints
 
-### 5. Refresh Token
+### Register
 
-Get a new access token using a refresh token.
+`POST /register`
 
-**Endpoint:** `POST /auth/refresh`
+Creates a project-scoped user. If email verification is enabled for the project, registration returns `202 Accepted` and the client must complete verification before login.
 
-**Request Body:**
+Request body:
 
 ```json
 {
-    "refresh_token": "{refresh_token}"
+  "email": "user@example.com",
+  "first_name": "Jane",
+  "last_name": "Doe",
+  "phone": "+12025550123",
+  "password": "password",
+  "password_confirmation": "password"
 }
 ```
 
-**Response (200 OK):**
+Example:
+
+```bash
+curl --request POST 'http://127.0.0.1:8000/api/v1/auth/register' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --header 'X-Project-Key: your-project-key' \
+  --data '{
+    "email": "user@example.com",
+    "first_name": "Jane",
+    "last_name": "Doe",
+    "phone": "+12025550123",
+    "password": "password",
+    "password_confirmation": "password"
+  }'
+```
+
+Responses:
+
+- `201 Created`: token response
+- `202 Accepted`: pending registration response
+- `400`: missing `X-Project-Key`
+- `401`: invalid project key
+- `403`: project unavailable
+- `422`: validation failure or duplicate verified email
+- `429`: rate limited
+
+### Login
+
+`POST /login`
+
+Authenticates an active, non-ghost project user and returns a new token pair.
+
+Request body:
 
 ```json
 {
-    "message": "Token refreshed successfully",
-    "data": {
-        "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...",
-        "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
-    }
+  "email": "user@example.com",
+  "password": "password"
 }
 ```
 
-**Notes:**
+Example:
 
-- Refresh tokens rotate (old one becomes invalid)
-- Refresh tokens expire after 30 days
-
----
-
-### 6. Forgot Password
-
-Request a password reset email.
-
-**Endpoint:** `POST /auth/forgot-password`
-
-**Request Body:**
-
-```json
-{
-    "email": "john@example.com"
-}
+```bash
+curl --request POST 'http://127.0.0.1:8000/api/v1/auth/login' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --header 'X-Project-Key: your-project-key' \
+  --data '{
+    "email": "user@example.com",
+    "password": "password"
+  }'
 ```
 
-**Response (200 OK):**
-
-```json
-{
-    "message": "Password reset email sent"
-}
-```
-
-**Notes:**
-
-- Sends an email with OTP for password reset
-- OTP validity: 10 minutes
-
----
-
-### 7. Reset Password
-
-Complete password reset with OTP.
-
-**Endpoint:** `POST /auth/reset-password`
-
-**Request Body:**
-
-```json
-{
-    "email": "john@example.com",
-    "password": "newpassword123",
-    "password_confirmation": "newpassword123",
-    "otp": "123456"
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-    "message": "Password reset successful",
-    "data": {
-        "user": {
-            "id": "uuid",
-            "name": "John Doe",
-            "email": "john@example.com"
-        }
-    }
-}
-```
-
----
-
-### 8. Send OTP
-
-Send a one-time password for various purposes.
-
-**Endpoint:** `POST /auth/send-otp`
-
-**Request Body:**
-
-```json
-{
-    "email": "john@example.com",
-    "purpose": "email_verification"
-}
-```
-
-**Available Purposes:**
-
-- `email_verification`: Verify email address
-- `login_verification`: 2-factor authentication for login
-- `forgot_password`: Password reset
-- `ghost_account_claim`: Claim ghost account
-- `register_verify`: Verify registration
-
-**Response (200 OK):**
-
-```json
-{
-    "message": "OTP sent successfully",
-    "data": {
-        "purpose": "email_verification",
-        "expires_at": "2024-01-01T00:10:00.000000Z"
-    }
-}
-```
-
----
-
-### 9. Verify OTP
-
-Verify a one-time password.
-
-**Endpoint:** `POST /auth/verify-otp`
-
-**Request Body:**
-
-```json
-{
-    "email": "john@example.com",
-    "otp": "123456",
-    "purpose": "email_verification"
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-    "message": "OTP verified successfully",
-    "data": {
-        "verified": true,
-        "purpose": "email_verification"
-    }
-}
-```
-
-**Additional Data (for ghost_account_claim):**
-
-```json
-{
-    "message": "OTP verified successfully",
-    "data": {
-        "verified": true,
-        "purpose": "ghost_account_claim",
-        "user": {
-            "id": "uuid",
-            "name": null,
-            "email": "john@example.com",
-            "is_ghost": true
-        }
-    }
-}
-```
-
----
-
-### 10. Resend OTP
-
-Resend a one-time password.
-
-**Endpoint:** `POST /auth/resend-otp`
-
-**Request Body:**
-
-```json
-{
-    "email": "john@example.com",
-    "purpose": "email_verification"
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-    "message": "OTP resent successfully",
-    "data": {
-        "purpose": "email_verification",
-        "expires_at": "2024-01-01T00:10:00.000000Z"
-    }
-}
-```
-
-**Rate Limit:** 3 requests per 10 minutes per email
-
----
-
-### 11. Create Ghost Accounts
-
-Pre-register users who will claim accounts later.
-
-**Endpoint:** `POST /auth/ghost-accounts`
-
-**Request Body:**
-
-```json
-{
-    "emails": ["user1@example.com", "user2@example.com"]
-}
-```
-
-**Response (201 Created):**
-
-```json
-{
-    "message": "Ghost accounts created successfully",
-    "data": {
-        "count": 2,
-        "emails": ["user1@example.com", "user2@example.com"]
-    }
-}
-```
-
-**Notes:**
-
-- Requires project to have ghost accounts enabled
-- Creates users with `is_ghost = true`
-- Users can't login until they claim their account
-
----
-
-### 12. Claim Ghost Account
-
-Convert a ghost account to a regular account.
-
-**Endpoint:** `POST /auth/ghost-accounts/claim`
-
-**Request Body:**
-
-```json
-{
-    "email": "user1@example.com",
-    "name": "John Doe",
-    "password": "secret123",
-    "password_confirmation": "secret123",
-    "otp": "123456"
-}
-```
-
-**Response (200 OK):**
-
-```json
-{
-    "message": "Ghost account claimed successfully",
-    "data": {
-        "user": {
-            "id": "uuid",
-            "name": "John Doe",
-            "email": "user1@example.com",
-            "is_ghost": false,
-            "email_verified_at": "2024-01-01T00:00:00.000000Z"
-        },
-        "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...",
-        "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
-    }
-}
-```
-
----
-
-## Error Responses
-
-### Standard Error Format
-
-```json
-{
-    "message": "Error description",
-    "errors": {
-        "field_name": ["Error message"]
-    }
-}
-```
-
-### Common HTTP Status Codes
-
-| Code | Description       | Example                                    |
-| ---- | ----------------- | ------------------------------------------ |
-| 200  | Success           | `{"message": "Operation successful"}`      |
-| 201  | Created           | User registration successful               |
-| 400  | Bad Request       | Invalid JSON, missing required fields      |
-| 401  | Unauthorized      | Invalid/missing authentication             |
-| 403  | Forbidden         | Project disabled, insufficient permissions |
-| 404  | Not Found         | Resource doesn't exist                     |
-| 422  | Validation Error  | Invalid email, password too short          |
-| 429  | Too Many Requests | Rate limit exceeded                        |
-| 500  | Server Error      | Internal server error                      |
-
-### Validation Errors
-
-```json
-{
-    "message": "The given data was invalid.",
-    "errors": {
-        "email": [
-            "The email field is required.",
-            "The email must be a valid email address."
-        ],
-        "password": [
-            "The password must be at least 8 characters.",
-            "The password confirmation does not match."
-        ]
-    }
-}
-```
-
-### Authentication Errors
-
-```json
-{
-    "message": "Invalid credentials"
-}
-```
-
-### Rate Limit Errors
-
-```json
-{
-    "message": "Too many attempts. Please try again in 60 seconds."
-}
-```
-
----
-
-## Rate Limiting
-
-### Default Limits
-
-- **Authentication endpoints**: 10 requests/minute per IP
-- **Other endpoints**: 100 requests/minute per project
-- **OTP resend**: 3 requests/10 minutes per email
-
-### Headers in Response
-
-```http
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 95
-X-RateLimit-Reset: 1704067200
-Retry-After: 60
-```
-
----
-
-## Token Information
-
-### Access Token
-
-- **Type**: JWT (JSON Web Token)
-- **Expiration**: 15 minutes
-- **Claims**: User ID, project ID, token type, expiration
-- **Usage**: Bearer token in `Authorization` header
+Responses:
+
+- `200 OK`: token response
+- `400`: missing `X-Project-Key`
+- `401`: invalid project key
+- `403`: project unavailable
+- `422`: invalid credentials or verification still required
+- `429`: rate limited
 
 ### Refresh Token
 
-- **Type**: JWT with longer expiration
-- **Expiration**: 30 days
-- **Storage**: Encrypted in database
-- **Usage**: Obtain new access token when expired
+`POST /refresh`
 
-### Token Rotation
+Rotates a refresh token and returns a fresh access token pair.
 
-1. Old refresh token invalidated on use
-2. New refresh token issued
-3. Prevents token reuse
+Request body:
 
----
+```json
+{
+  "refresh_token": "plain-text-refresh-token"
+}
+```
 
-## Security Considerations
+Example:
 
-### 1. API Key Security
+```bash
+curl --request POST 'http://127.0.0.1:8000/api/v1/auth/refresh' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --header 'X-Project-Key: your-project-key' \
+  --data '{
+    "refresh_token": "plain-text-refresh-token"
+  }'
+```
 
-- Store `X-Project-Key` securely on client
-- Never expose in client-side code
-- Rotate keys regularly
+Responses:
 
-### 2. Token Storage
+- `200 OK`: token response
+- `400`: missing `X-Project-Key`
+- `401`: invalid project key
+- `403`: project unavailable
+- `422`: invalid, expired, revoked, or blocked refresh token
+- `429`: rate limited
 
-- **Access Token**: Store in memory (not localStorage)
-- **Refresh Token**: Store in HTTP-only cookie if possible
-- **Web**: Use secure, HTTP-only cookies
-- **Mobile**: Use secure storage (Keychain/Keystore)
+### Forgot Password
 
-### 3. Password Requirements
+`POST /forgot-password`
 
-- Minimum 8 characters
-- At least one uppercase letter
-- At least one lowercase letter
-- At least one number
-- At least one special character (optional based on project settings)
+Requests a password reset link email. The response is intentionally generic.
 
-### 4. Email Verification
+Request body:
 
-- Required for critical operations
-- OTP validity: 10 minutes
-- Automatic cleanup of expired OTPs
+```json
+{
+  "email": "user@example.com"
+}
+```
 
----
+Example:
 
-## Webhooks (Future)
+```bash
+curl --request POST 'http://127.0.0.1:8000/api/v1/auth/forgot-password' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --header 'X-Project-Key: your-project-key' \
+  --data '{
+    "email": "user@example.com"
+  }'
+```
 
-### Planned Events
+Responses:
 
-- `user.registered`
-- `user.logged_in`
-- `user.password_reset`
-- `user.email_verified`
-- `user.ghost_account_claimed`
+- `202 Accepted`: generic accepted response
+- `400`: missing `X-Project-Key`
+- `401`: invalid project key
+- `403`: project unavailable
+- `422`: validation failure or feature disabled
+- `429`: rate limited
 
-### Configuration
+### Reset Password
 
-Configure webhook URLs in Filament admin panel per project.
+`POST /reset-password`
 
----
+Completes a password reset using the reset token from the emailed reset link.
 
-## Changelog
+Request body:
 
-### v1.0.0 (Current)
+```json
+{
+  "email": "user@example.com",
+  "token": "password-reset-token",
+  "password": "new-password",
+  "password_confirmation": "new-password"
+}
+```
 
-- User registration and login
-- Token-based authentication
-- Password reset with OTP
-- Email verification
-- Ghost accounts
-- Project isolation
-- Audit logging
-- Rate limiting
-- Custom email templates
+Example:
 
-### Future Plans
+```bash
+curl --request POST 'http://127.0.0.1:8000/api/v1/auth/reset-password' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --header 'X-Project-Key: your-project-key' \
+  --data '{
+    "email": "user@example.com",
+    "token": "password-reset-token",
+    "password": "new-password",
+    "password_confirmation": "new-password"
+  }'
+```
 
-- Social login (OAuth2)
-- Webhooks
-- Custom user fields
-- Role-based access control
-- Analytics dashboard
-- Bulk operations
+Success response:
 
----
+```json
+{
+  "data": {
+    "message": "Password reset successfully."
+  }
+}
+```
 
-## Support
+Responses:
 
-For API-related issues:
+- `200 OK`: reset completed
+- `400`: missing `X-Project-Key`
+- `401`: invalid project key
+- `403`: project unavailable
+- `422`: invalid token, expired token, or validation failure
+- `429`: rate limited
 
-1. Check error responses for details
-2. Verify `X-Project-Key` is correct
-3. Ensure project is active
-4. Check rate limits
-5. Contact support with error details and request ID
+### Send OTP
 
-**Contact:** elferjani7@gmail.com
+`POST /send-otp`
 
----
+Sends an OTP for the requested purpose.
 
-_Last updated: April 6, 2026_
+Request body:
+
+```json
+{
+  "email": "user@example.com",
+  "purpose": "email_verification"
+}
+```
+
+Example:
+
+```bash
+curl --request POST 'http://127.0.0.1:8000/api/v1/auth/send-otp' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --header 'X-Project-Key: your-project-key' \
+  --data '{
+    "email": "user@example.com",
+    "purpose": "email_verification"
+  }'
+```
+
+Responses:
+
+- `202 Accepted`: generic accepted response
+- `400`: missing `X-Project-Key`
+- `401`: invalid project key
+- `403`: project unavailable
+- `422`: validation failure, cooldown hit, or OTP disabled
+- `429`: rate limited
+
+### Verify OTP
+
+`POST /verify-otp`
+
+Verifies an OTP code for an email and purpose. When the purpose is `email_verification`, this activates the user and completes email verification.
+
+Request body:
+
+```json
+{
+  "email": "user@example.com",
+  "purpose": "email_verification",
+  "otp_code": "123456"
+}
+```
+
+Example:
+
+```bash
+curl --request POST 'http://127.0.0.1:8000/api/v1/auth/verify-otp' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --header 'X-Project-Key: your-project-key' \
+  --data '{
+    "email": "user@example.com",
+    "purpose": "email_verification",
+    "otp_code": "123456"
+  }'
+```
+
+Success response:
+
+```json
+{
+  "data": {
+    "verified": true,
+    "message": "OTP verified successfully."
+  }
+}
+```
+
+Responses:
+
+- `200 OK`: OTP verified
+- `400`: missing `X-Project-Key`
+- `401`: invalid project key
+- `403`: project unavailable
+- `422`: invalid or expired OTP, or validation failure
+- `429`: rate limited
+
+### Resend OTP
+
+`POST /resend-otp`
+
+Resends an OTP for the requested purpose.
+
+Request body:
+
+```json
+{
+  "email": "user@example.com",
+  "purpose": "email_verification"
+}
+```
+
+Example:
+
+```bash
+curl --request POST 'http://127.0.0.1:8000/api/v1/auth/resend-otp' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --header 'X-Project-Key: your-project-key' \
+  --data '{
+    "email": "user@example.com",
+    "purpose": "email_verification"
+  }'
+```
+
+Responses:
+
+- `202 Accepted`: generic accepted response
+- `400`: missing `X-Project-Key`
+- `401`: invalid project key
+- `403`: project unavailable
+- `422`: validation failure or OTP disabled
+- `429`: rate limited
+
+### Create Ghost Account
+
+`POST /ghost-accounts`
+
+Creates or updates a ghost account inside the current project. This flow is only available when ghost accounts are enabled in project auth settings.
+
+Request body:
+
+```json
+{
+  "email": "invitee@example.com",
+  "first_name": "Jane",
+  "last_name": "Doe",
+  "phone": "+12025550123",
+  "ghost_source": "api",
+  "must_set_password": true,
+  "must_verify_email": false,
+  "send_invite": true
+}
+```
+
+Example:
+
+```bash
+curl --request POST 'http://127.0.0.1:8000/api/v1/auth/ghost-accounts' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --header 'X-Project-Key: your-project-key' \
+  --data '{
+    "email": "invitee@example.com",
+    "first_name": "Jane",
+    "last_name": "Doe",
+    "phone": "+12025550123",
+    "ghost_source": "api",
+    "must_set_password": true,
+    "must_verify_email": false,
+    "send_invite": true
+  }'
+```
+
+Responses:
+
+- `201 Created`: returns a `ProjectUser` payload
+- `400`: missing `X-Project-Key`
+- `401`: invalid project key
+- `403`: project unavailable
+- `422`: validation failure, feature disabled, or active account already exists
+- `429`: rate limited
+
+### Claim Ghost Account
+
+`POST /ghost-accounts/claim`
+
+Claims a ghost account using the `ghost_account_claim` OTP and returns normal auth tokens.
+
+Request body:
+
+```json
+{
+  "email": "invitee@example.com",
+  "otp_code": "123456",
+  "password": "password",
+  "password_confirmation": "password",
+  "first_name": "Jane",
+  "last_name": "Doe",
+  "phone": "+12025550123"
+}
+```
+
+Example:
+
+```bash
+curl --request POST 'http://127.0.0.1:8000/api/v1/auth/ghost-accounts/claim' \
+  --header 'Accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --header 'X-Project-Key: your-project-key' \
+  --data '{
+    "email": "invitee@example.com",
+    "otp_code": "123456",
+    "password": "password",
+    "password_confirmation": "password",
+    "first_name": "Jane",
+    "last_name": "Doe",
+    "phone": "+12025550123"
+  }'
+```
+
+Responses:
+
+- `200 OK`: token response
+- `400`: missing `X-Project-Key`
+- `401`: invalid project key
+- `403`: project unavailable
+- `422`: validation failure, feature disabled, OTP invalid, or password required
+- `429`: rate limited
+
+### Current User
+
+`GET /me`
+
+Returns the authenticated project user.
+
+Example:
+
+```bash
+curl --request GET 'http://127.0.0.1:8000/api/v1/auth/me' \
+  --header 'Accept: application/json' \
+  --header 'X-Project-Key: your-project-key' \
+  --header 'Authorization: Bearer your-access-token'
+```
+
+Responses:
+
+- `200 OK`: returns the current `ProjectUser`
+- `400`: missing `X-Project-Key`
+- `401`: unauthenticated
+- `403`: wrong project token, inactive account, or pending verification
+- `429`: rate limited
+
+### Logout
+
+`POST /logout`
+
+Revokes the current access token and all active refresh tokens for that project user.
+
+Example:
+
+```bash
+curl --request POST 'http://127.0.0.1:8000/api/v1/auth/logout' \
+  --header 'Accept: application/json' \
+  --header 'X-Project-Key: your-project-key' \
+  --header 'Authorization: Bearer your-access-token'
+```
+
+Success response:
+
+```json
+{
+  "data": {
+    "message": "Logged out successfully."
+  }
+}
+```
+
+Responses:
+
+- `200 OK`: logout completed
+- `400`: missing `X-Project-Key`
+- `401`: unauthenticated
+- `403`: wrong project token, inactive account, or pending verification
+- `429`: rate limited

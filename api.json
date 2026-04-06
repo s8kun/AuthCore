@@ -1,0 +1,1365 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Auth-as-a-Service API",
+        "version": "1.0.0",
+        "description": "Project-scoped authentication API for registration, login, token rotation, OTP flows, password resets, and ghost-account claims."
+    },
+    "servers": [
+        {
+            "url": "http://127.0.0.1:8000/api",
+            "description": "Local development server"
+        }
+    ],
+    "tags": [
+        {
+            "name": "Auth",
+            "description": "Public project-scoped authentication endpoints"
+        }
+    ],
+    "paths": {
+        "/v1/auth/register": {
+            "post": {
+                "operationId": "registerProjectUser",
+                "summary": "Register a new project user",
+                "tags": [
+                    "Auth"
+                ],
+                "security": [
+                    {
+                        "projectKey": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterProjectUserRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Registration completed and tokens were issued.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthTokenResponseEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "202": {
+                        "description": "Registration accepted. Email verification is required before login.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PendingRegistrationResponseEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/MissingProjectKey"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/InvalidProjectKey"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ProjectUnavailable"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    }
+                }
+            }
+        },
+        "/v1/auth/login": {
+            "post": {
+                "operationId": "loginProjectUser",
+                "summary": "Authenticate a project user and issue tokens",
+                "tags": [
+                    "Auth"
+                ],
+                "security": [
+                    {
+                        "projectKey": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginProjectUserRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Authenticated successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthTokenResponseEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/MissingProjectKey"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/InvalidProjectKey"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ProjectUnavailable"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    }
+                }
+            }
+        },
+        "/v1/auth/refresh": {
+            "post": {
+                "operationId": "refreshProjectUserToken",
+                "summary": "Rotate a refresh token and issue a fresh token pair",
+                "tags": [
+                    "Auth"
+                ],
+                "security": [
+                    {
+                        "projectKey": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RefreshProjectUserTokenRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Refresh token rotated successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthTokenResponseEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/MissingProjectKey"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/InvalidProjectKey"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ProjectUnavailable"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    }
+                }
+            }
+        },
+        "/v1/auth/forgot-password": {
+            "post": {
+                "operationId": "requestProjectPasswordReset",
+                "summary": "Request a password reset email",
+                "tags": [
+                    "Auth"
+                ],
+                "security": [
+                    {
+                        "projectKey": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ForgotProjectPasswordRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Generic accepted response.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AcceptedMessageResponseEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/MissingProjectKey"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/InvalidProjectKey"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ProjectUnavailable"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    }
+                }
+            }
+        },
+        "/v1/auth/reset-password": {
+            "post": {
+                "operationId": "resetProjectPassword",
+                "summary": "Complete a password reset",
+                "tags": [
+                    "Auth"
+                ],
+                "security": [
+                    {
+                        "projectKey": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResetProjectPasswordRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Password reset completed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PasswordResetSuccessResponseEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/MissingProjectKey"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/InvalidProjectKey"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ProjectUnavailable"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    }
+                }
+            }
+        },
+        "/v1/auth/send-otp": {
+            "post": {
+                "operationId": "sendProjectOtp",
+                "summary": "Send an OTP for a project-scoped purpose",
+                "tags": [
+                    "Auth"
+                ],
+                "security": [
+                    {
+                        "projectKey": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SendProjectOtpRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Generic accepted response.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AcceptedMessageResponseEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/MissingProjectKey"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/InvalidProjectKey"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ProjectUnavailable"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    }
+                }
+            }
+        },
+        "/v1/auth/verify-otp": {
+            "post": {
+                "operationId": "verifyProjectOtp",
+                "summary": "Verify a project-scoped OTP",
+                "tags": [
+                    "Auth"
+                ],
+                "security": [
+                    {
+                        "projectKey": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VerifyProjectOtpRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP verified successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VerifyOtpSuccessResponseEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/MissingProjectKey"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/InvalidProjectKey"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ProjectUnavailable"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    }
+                }
+            }
+        },
+        "/v1/auth/resend-otp": {
+            "post": {
+                "operationId": "resendProjectOtp",
+                "summary": "Resend a project-scoped OTP",
+                "tags": [
+                    "Auth"
+                ],
+                "security": [
+                    {
+                        "projectKey": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResendProjectOtpRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Generic accepted response.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AcceptedMessageResponseEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/MissingProjectKey"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/InvalidProjectKey"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ProjectUnavailable"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    }
+                }
+            }
+        },
+        "/v1/auth/ghost-accounts": {
+            "post": {
+                "operationId": "createGhostAccount",
+                "summary": "Create a ghost account in the current project",
+                "tags": [
+                    "Auth"
+                ],
+                "security": [
+                    {
+                        "projectKey": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreGhostAccountRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Ghost account created.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectUserResponseEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/MissingProjectKey"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/InvalidProjectKey"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ProjectUnavailable"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    }
+                }
+            }
+        },
+        "/v1/auth/ghost-accounts/claim": {
+            "post": {
+                "operationId": "claimGhostAccount",
+                "summary": "Claim a ghost account and issue tokens",
+                "tags": [
+                    "Auth"
+                ],
+                "security": [
+                    {
+                        "projectKey": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ClaimGhostAccountRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Ghost account claimed successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthTokenResponseEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/MissingProjectKey"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/InvalidProjectKey"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ProjectUnavailable"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    }
+                }
+            }
+        },
+        "/v1/auth/me": {
+            "get": {
+                "operationId": "getCurrentProjectUser",
+                "summary": "Return the authenticated project user",
+                "tags": [
+                    "Auth"
+                ],
+                "security": [
+                    {
+                        "projectKey": [],
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Authenticated user returned.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectUserResponseEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/MissingProjectKey"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ProjectAccessForbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    }
+                }
+            }
+        },
+        "/v1/auth/logout": {
+            "post": {
+                "operationId": "logoutProjectUser",
+                "summary": "Revoke the current access token and active refresh tokens",
+                "tags": [
+                    "Auth"
+                ],
+                "security": [
+                    {
+                        "projectKey": [],
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Logged out successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LogoutSuccessResponseEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/MissingProjectKey"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/ProjectAccessForbidden"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "projectKey": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-Project-Key",
+                "description": "Project API key used to resolve the current project."
+            },
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "Sanctum"
+            }
+        },
+        "schemas": {
+            "RegisterProjectUserRequest": {
+                "type": "object",
+                "required": [
+                    "email",
+                    "password",
+                    "password_confirmation"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "first_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "last_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "password_confirmation": {
+                        "type": "string"
+                    }
+                }
+            },
+            "LoginProjectUserRequest": {
+                "type": "object",
+                "required": [
+                    "email",
+                    "password"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "password": {
+                        "type": "string"
+                    }
+                }
+            },
+            "RefreshProjectUserTokenRequest": {
+                "type": "object",
+                "required": [
+                    "refresh_token"
+                ],
+                "properties": {
+                    "refresh_token": {
+                        "type": "string"
+                    }
+                }
+            },
+            "ForgotProjectPasswordRequest": {
+                "type": "object",
+                "required": [
+                    "email"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    }
+                }
+            },
+            "ResetProjectPasswordRequest": {
+                "type": "object",
+                "required": [
+                    "email",
+                    "token",
+                    "password",
+                    "password_confirmation"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "token": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "password_confirmation": {
+                        "type": "string"
+                    }
+                }
+            },
+            "SendProjectOtpRequest": {
+                "type": "object",
+                "required": [
+                    "email",
+                    "purpose"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "purpose": {
+                        "$ref": "#/components/schemas/ProjectOtpPurpose"
+                    }
+                }
+            },
+            "VerifyProjectOtpRequest": {
+                "type": "object",
+                "required": [
+                    "email",
+                    "purpose",
+                    "otp_code"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "purpose": {
+                        "$ref": "#/components/schemas/ProjectOtpPurpose"
+                    },
+                    "otp_code": {
+                        "type": "string",
+                        "minLength": 4,
+                        "maxLength": 12
+                    }
+                }
+            },
+            "ResendProjectOtpRequest": {
+                "type": "object",
+                "required": [
+                    "email",
+                    "purpose"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "purpose": {
+                        "$ref": "#/components/schemas/ProjectOtpPurpose"
+                    }
+                }
+            },
+            "StoreGhostAccountRequest": {
+                "type": "object",
+                "required": [
+                    "email"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "first_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "last_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "ghost_source": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "must_set_password": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "must_verify_email": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "send_invite": {
+                        "type": "boolean",
+                        "default": true
+                    }
+                }
+            },
+            "ClaimGhostAccountRequest": {
+                "type": "object",
+                "required": [
+                    "email",
+                    "otp_code"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "otp_code": {
+                        "type": "string",
+                        "minLength": 4,
+                        "maxLength": 12
+                    },
+                    "password": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "password_confirmation": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "first_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "last_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    }
+                }
+            },
+            "ProjectOtpPurpose": {
+                "type": "string",
+                "enum": [
+                    "register_verify",
+                    "login_verify",
+                    "forgot_password",
+                    "ghost_account_claim",
+                    "email_verification"
+                ]
+            },
+            "ProjectUserResource": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "project_id",
+                    "email",
+                    "first_name",
+                    "last_name",
+                    "phone",
+                    "email_verified_at",
+                    "last_login_at",
+                    "is_active",
+                    "is_ghost",
+                    "claimed_at",
+                    "invited_at",
+                    "ghost_source",
+                    "must_set_password",
+                    "must_verify_email",
+                    "created_at",
+                    "updated_at"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "project_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "first_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "last_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "email_verified_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "last_login_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "is_active": {
+                        "type": "boolean"
+                    },
+                    "is_ghost": {
+                        "type": "boolean"
+                    },
+                    "claimed_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "invited_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "ghost_source": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "must_set_password": {
+                        "type": "boolean"
+                    },
+                    "must_verify_email": {
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                }
+            },
+            "AuthTokenResponseData": {
+                "type": "object",
+                "required": [
+                    "token_type",
+                    "access_token",
+                    "refresh_token",
+                    "expires_at",
+                    "expires_in_seconds",
+                    "refresh_token_expires_at",
+                    "refresh_token_expires_in_seconds",
+                    "user"
+                ],
+                "properties": {
+                    "token_type": {
+                        "type": "string",
+                        "const": "Bearer"
+                    },
+                    "access_token": {
+                        "type": "string"
+                    },
+                    "refresh_token": {
+                        "type": "string"
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "expires_in_seconds": {
+                        "type": "integer"
+                    },
+                    "refresh_token_expires_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "refresh_token_expires_in_seconds": {
+                        "type": "integer"
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/ProjectUserResource"
+                    }
+                }
+            },
+            "PendingRegistrationResponseData": {
+                "type": "object",
+                "required": [
+                    "message",
+                    "verification_required",
+                    "verification_purpose",
+                    "user"
+                ],
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "const": "Registration successful. Verify your email to continue."
+                    },
+                    "verification_required": {
+                        "type": "boolean",
+                        "const": true
+                    },
+                    "verification_purpose": {
+                        "type": "string",
+                        "const": "email_verification"
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/ProjectUserResource"
+                    }
+                }
+            },
+            "AcceptedMessageResponseData": {
+                "type": "object",
+                "required": [
+                    "message"
+                ],
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "const": "If the request can be processed, an email will be sent."
+                    }
+                }
+            },
+            "VerifyOtpSuccessResponseData": {
+                "type": "object",
+                "required": [
+                    "verified",
+                    "message"
+                ],
+                "properties": {
+                    "verified": {
+                        "type": "boolean",
+                        "const": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "const": "OTP verified successfully."
+                    }
+                }
+            },
+            "LogoutSuccessResponseData": {
+                "type": "object",
+                "required": [
+                    "message"
+                ],
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "const": "Logged out successfully."
+                    }
+                }
+            },
+            "PasswordResetSuccessResponseData": {
+                "type": "object",
+                "required": [
+                    "message"
+                ],
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "const": "Password reset successfully."
+                    }
+                }
+            },
+            "ProjectUserResponseEnvelope": {
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/ProjectUserResource"
+                    }
+                }
+            },
+            "AuthTokenResponseEnvelope": {
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/AuthTokenResponseData"
+                    }
+                }
+            },
+            "PendingRegistrationResponseEnvelope": {
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/PendingRegistrationResponseData"
+                    }
+                }
+            },
+            "AcceptedMessageResponseEnvelope": {
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/AcceptedMessageResponseData"
+                    }
+                }
+            },
+            "VerifyOtpSuccessResponseEnvelope": {
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/VerifyOtpSuccessResponseData"
+                    }
+                }
+            },
+            "LogoutSuccessResponseEnvelope": {
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/LogoutSuccessResponseData"
+                    }
+                }
+            },
+            "PasswordResetSuccessResponseEnvelope": {
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/PasswordResetSuccessResponseData"
+                    }
+                }
+            },
+            "ErrorMessageResponse": {
+                "type": "object",
+                "required": [
+                    "message"
+                ],
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    }
+                }
+            },
+            "ValidationErrorResponse": {
+                "type": "object",
+                "required": [
+                    "message",
+                    "errors"
+                ],
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    },
+                    "errors": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "responses": {
+            "ValidationException": {
+                "description": "Validation error.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ValidationErrorResponse"
+                        }
+                    }
+                }
+            },
+            "AuthenticationException": {
+                "description": "Unauthenticated.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorMessageResponse"
+                        },
+                        "example": {
+                            "message": "Unauthenticated."
+                        }
+                    }
+                }
+            },
+            "MissingProjectKey": {
+                "description": "The request did not include the X-Project-Key header.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorMessageResponse"
+                        },
+                        "example": {
+                            "message": "The X-Project-Key header is required."
+                        }
+                    }
+                }
+            },
+            "InvalidProjectKey": {
+                "description": "The provided project key does not match any project.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorMessageResponse"
+                        },
+                        "example": {
+                            "message": "The provided project key is invalid."
+                        }
+                    }
+                }
+            },
+            "ProjectUnavailable": {
+                "description": "The resolved project is not active.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorMessageResponse"
+                        },
+                        "example": {
+                            "message": "The requested project is not available."
+                        }
+                    }
+                }
+            },
+            "ProjectAccessForbidden": {
+                "description": "The token is valid but cannot access the requested project resource.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorMessageResponse"
+                        },
+                        "examples": {
+                            "wrongProject": {
+                                "value": {
+                                    "message": "This token does not belong to the requested project."
+                                }
+                            },
+                            "inactiveAccount": {
+                                "value": {
+                                    "message": "This account is inactive."
+                                }
+                            },
+                            "verificationRequired": {
+                                "value": {
+                                    "message": "Email verification is required before accessing this resource."
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "TooManyRequests": {
+                "description": "The project-auth rate limiter was exceeded.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ErrorMessageResponse"
+                        },
+                        "example": {
+                            "message": "Too many requests."
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
