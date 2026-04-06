@@ -37,8 +37,6 @@ class ProjectUserForm
                             ->maxLength(255),
                         TextInput::make('phone')
                             ->maxLength(255),
-                        TextInput::make('role')
-                            ->maxLength(255),
                         TextInput::make('password')
                             ->password()
                             ->revealable()

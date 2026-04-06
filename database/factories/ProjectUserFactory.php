@@ -31,7 +31,6 @@ class ProjectUserFactory extends Factory
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
             'phone' => fake()->e164PhoneNumber(),
-            'role' => 'user',
             'email_verified_at' => now(),
             'last_login_at' => null,
             'is_active' => true,
@@ -42,16 +41,6 @@ class ProjectUserFactory extends Factory
             'must_set_password' => false,
             'must_verify_email' => false,
         ];
-    }
-
-    /**
-     * Indicate that the project user is an admin.
-     */
-    public function admin(): static
-    {
-        return $this->state(fn () => [
-            'role' => 'admin',
-        ]);
     }
 
     /**

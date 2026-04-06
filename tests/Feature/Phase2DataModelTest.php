@@ -35,7 +35,6 @@ it('uses uuid ids for the auth provider models and provisions related project de
             'first_name',
             'last_name',
             'phone',
-            'role',
             'email_verified_at',
             'is_active',
             'is_ghost',

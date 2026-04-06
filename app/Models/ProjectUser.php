@@ -20,7 +20,6 @@ use Laravel\Sanctum\HasApiTokens;
     'first_name',
     'last_name',
     'phone',
-    'role',
     'email_verified_at',
     'last_login_at',
     'is_active',

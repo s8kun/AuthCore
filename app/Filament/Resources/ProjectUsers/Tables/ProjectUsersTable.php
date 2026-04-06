@@ -26,9 +26,6 @@ class ProjectUsersTable
                     ->searchable(),
                 TextColumn::make('last_name')
                     ->searchable(),
-                TextColumn::make('role')
-                    ->badge()
-                    ->placeholder('user'),
                 IconColumn::make('is_active')
                     ->boolean(),
                 IconColumn::make('is_ghost')
