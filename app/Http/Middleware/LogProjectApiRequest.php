@@ -30,8 +30,16 @@ class LogProjectApiRequest
         if ($project instanceof Project) {
             $project->apiRequestLogs()->create([
                 'endpoint' => '/'.$request->path(),
+                'route_name' => $request->route()?->getName(),
                 'method' => $request->method(),
+                'email' => $request->user()?->email ?? $request->input('email'),
                 'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'status_code' => $response->getStatusCode(),
+                'success' => $response->getStatusCode() < 400,
+                'metadata' => [
+                    'project_id' => $project->getKey(),
+                ],
             ]);
         }
     }

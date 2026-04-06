@@ -27,7 +27,7 @@
 
                 <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Token Expiration</dt>
-                    <dd class="mt-2 text-sm">{{ config('sanctum.expiration') }} minutes</dd>
+                    <dd class="mt-2 text-sm">{{ $project->authSettings?->access_token_ttl_minutes ?? config('sanctum.expiration') }} minutes</dd>
                 </div>
             </dl>
         </x-filament::section>
@@ -47,6 +47,11 @@
                 </div>
 
                 <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Status</dt>
+                    <dd class="mt-1 text-sm">{{ ucfirst($project->status->value) }}</dd>
+                </div>
+
+                <div>
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Project Users</dt>
                     <dd class="mt-1 text-sm">{{ $project->project_users_count }}</dd>
                 </div>
@@ -54,6 +59,11 @@
                 <div>
                     <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Logged Requests</dt>
                     <dd class="mt-1 text-sm">{{ $project->api_request_logs_count }}</dd>
+                </div>
+
+                <div>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Auth Events</dt>
+                    <dd class="mt-1 text-sm">{{ $project->auth_event_logs_count }}</dd>
                 </div>
             </dl>
         </x-filament::section>
@@ -80,6 +90,30 @@
                 'Logout' => [
                     'request' => $this->renderExampleTemplate($this->getLogoutRequestExample()),
                     'response' => $this->getLogoutResponseExample(),
+                ],
+                'Refresh' => [
+                    'request' => $this->renderExampleTemplate($this->getRefreshRequestExample()),
+                    'response' => $this->getLoginResponseExample(),
+                ],
+                'Forgot Password' => [
+                    'request' => $this->renderExampleTemplate($this->getForgotPasswordRequestExample()),
+                    'response' => $this->getAcceptedResponseExample(),
+                ],
+                'Reset Password' => [
+                    'request' => $this->renderExampleTemplate($this->getResetPasswordRequestExample()),
+                    'response' => $this->getResetPasswordResponseExample(),
+                ],
+                'Send OTP' => [
+                    'request' => $this->renderExampleTemplate($this->getSendOtpRequestExample()),
+                    'response' => $this->getAcceptedResponseExample(),
+                ],
+                'Verify OTP' => [
+                    'request' => $this->renderExampleTemplate($this->getVerifyOtpRequestExample()),
+                    'response' => $this->getVerifyOtpResponseExample(),
+                ],
+                'Claim Ghost Account' => [
+                    'request' => $this->renderExampleTemplate($this->getClaimGhostAccountRequestExample()),
+                    'response' => $this->getLoginResponseExample(),
                 ],
             ] as $label => $example)
                 <div class="space-y-4 rounded-2xl border border-gray-200 p-5 dark:border-white/10">

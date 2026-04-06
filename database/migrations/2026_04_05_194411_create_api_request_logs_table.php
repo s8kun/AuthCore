@@ -8,24 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('api_request_logs')) {
-            Schema::table('api_request_logs', function (Blueprint $table) {
-                $table->foreign('project_id')
-                    ->references('id')
-                    ->on('projects')
-                    ->cascadeOnDelete();
-            });
-
-            return;
-        }
-
         Schema::create('api_request_logs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('project_id')->constrained('projects')->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('project_id')->constrained('projects')->cascadeOnDelete();
             $table->string('endpoint');
+            $table->string('route_name')->nullable();
             $table->string('method');
+            $table->string('email')->nullable();
             $table->ipAddress('ip_address')->nullable();
+            $table->string('user_agent', 1024)->nullable();
+            $table->unsignedSmallInteger('status_code')->nullable();
+            $table->boolean('success')->default(false);
+            $table->json('metadata')->nullable();
             $table->timestamp('created_at')->useCurrent();
+
+            $table->index(['project_id', 'created_at']);
         });
     }
 

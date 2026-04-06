@@ -33,6 +33,18 @@ class EnsureProjectAccessMatchesToken
             ], Response::HTTP_FORBIDDEN);
         }
 
+        if (! $projectUser->is_active) {
+            return response()->json([
+                'message' => 'This account is inactive.',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        if ($projectUser->isPendingEmailVerification()) {
+            return response()->json([
+                'message' => 'Email verification is required before accessing this resource.',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
         return $next($request);
     }
 }

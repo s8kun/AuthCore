@@ -28,7 +28,19 @@ class ProjectUserFactory extends Factory
             'project_id' => Project::factory(),
             'email' => fake()->unique()->safeEmail(),
             'password' => static::$password ??= Hash::make('password'),
+            'first_name' => fake()->firstName(),
+            'last_name' => fake()->lastName(),
+            'phone' => fake()->e164PhoneNumber(),
             'role' => 'user',
+            'email_verified_at' => now(),
+            'last_login_at' => null,
+            'is_active' => true,
+            'is_ghost' => false,
+            'claimed_at' => null,
+            'invited_at' => null,
+            'ghost_source' => null,
+            'must_set_password' => false,
+            'must_verify_email' => false,
         ];
     }
 
@@ -39,6 +51,31 @@ class ProjectUserFactory extends Factory
     {
         return $this->state(fn () => [
             'role' => 'admin',
+        ]);
+    }
+
+    /**
+     * Indicate that the project user is a ghost account.
+     */
+    public function ghost(): static
+    {
+        return $this->state(fn () => [
+            'password' => null,
+            'is_ghost' => true,
+            'invited_at' => now(),
+            'claimed_at' => null,
+            'must_set_password' => true,
+        ]);
+    }
+
+    /**
+     * Indicate that the project user is pending email verification.
+     */
+    public function pendingEmailVerification(): static
+    {
+        return $this->state(fn () => [
+            'email_verified_at' => null,
+            'must_verify_email' => true,
         ]);
     }
 }

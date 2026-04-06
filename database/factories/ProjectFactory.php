@@ -2,10 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Enums\ProjectStatus;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 /**
  * @extends Factory<Project>
@@ -22,7 +22,10 @@ class ProjectFactory extends Factory
         return [
             'owner_id' => User::factory(),
             'name' => fake()->company(),
-            'api_key' => Str::lower(Str::random(40)),
+            'slug' => fake()->unique()->slug(),
+            'api_key' => null,
+            'api_secret' => null,
+            'status' => ProjectStatus::Active,
             'rate_limit' => 60,
         ];
     }

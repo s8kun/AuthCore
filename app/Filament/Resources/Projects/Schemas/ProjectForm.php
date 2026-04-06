@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\Projects\Schemas;
 
+use App\Enums\ProjectStatus;
 use App\Models\Project;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -20,6 +22,16 @@ class ProjectForm
                             ->required()
                             ->maxLength(255)
                             ->autofocus(),
+                        TextInput::make('slug')
+                            ->readOnly()
+                            ->dehydrated(false)
+                            ->placeholder('Generated automatically after save'),
+                        Select::make('status')
+                            ->options(collect(ProjectStatus::cases())->mapWithKeys(fn (ProjectStatus $status): array => [
+                                $status->value => ucfirst($status->value),
+                            ])->all())
+                            ->default(ProjectStatus::Active->value)
+                            ->required(),
                         TextInput::make('rate_limit')
                             ->label('Requests Per Minute')
                             ->numeric()
@@ -36,6 +48,14 @@ class ProjectForm
                             ->readOnly()
                             ->required()
                             ->helperText('This key is generated automatically and shown again on the integration details page after save.'),
+                        TextInput::make('api_secret')
+                            ->label('Project API Secret')
+                            ->password()
+                            ->revealable()
+                            ->default(fn (): string => Project::generateApiSecret())
+                            ->readOnly()
+                            ->required()
+                            ->helperText('Reserved for future server-to-server flows and safe rotation.'),
                         Placeholder::make('owner_email')
                             ->label('Owner Account')
                             ->content(fn (?Project $record): string => $record?->owner?->email ?? (string) auth()->user()?->email),

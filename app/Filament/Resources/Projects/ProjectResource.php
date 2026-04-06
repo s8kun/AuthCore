@@ -5,7 +5,10 @@ namespace App\Filament\Resources\Projects;
 use App\Filament\Resources\Projects\Pages\CreateProject;
 use App\Filament\Resources\Projects\Pages\EditProject;
 use App\Filament\Resources\Projects\Pages\ListProjects;
+use App\Filament\Resources\Projects\Pages\ProjectAuthSettings;
+use App\Filament\Resources\Projects\Pages\ProjectEmailTemplates;
 use App\Filament\Resources\Projects\Pages\ProjectIntegrationDetails;
+use App\Filament\Resources\Projects\Pages\ProjectMailSettings;
 use App\Filament\Resources\Projects\Schemas\ProjectForm;
 use App\Filament\Resources\Projects\Tables\ProjectsTable;
 use App\Models\Project;
@@ -43,7 +46,7 @@ class ProjectResource extends Resource
 
         $query = parent::getEloquentQuery()
             ->with('owner')
-            ->withCount(['projectUsers', 'apiRequestLogs'])
+            ->withCount(['projectUsers', 'apiRequestLogs', 'authEventLogs'])
             ->latest('id');
 
         if ($owner === null) {
@@ -74,6 +77,9 @@ class ProjectResource extends Resource
     {
         return $page->generateNavigationItems([
             EditProject::class,
+            ProjectMailSettings::class,
+            ProjectAuthSettings::class,
+            ProjectEmailTemplates::class,
             ProjectIntegrationDetails::class,
         ]);
     }
@@ -84,6 +90,9 @@ class ProjectResource extends Resource
             'index' => ListProjects::route('/'),
             'create' => CreateProject::route('/create'),
             'edit' => EditProject::route('/{record}/edit'),
+            'mail-settings' => ProjectMailSettings::route('/{record}/mail-settings'),
+            'auth-settings' => ProjectAuthSettings::route('/{record}/auth-settings'),
+            'email-templates' => ProjectEmailTemplates::route('/{record}/email-templates'),
             'integration' => ProjectIntegrationDetails::route('/{record}/integration'),
         ];
     }

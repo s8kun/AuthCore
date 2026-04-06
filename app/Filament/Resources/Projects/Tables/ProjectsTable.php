@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Projects\Tables;
 
+use App\Enums\ProjectStatus;
 use App\Filament\Resources\Projects\ProjectResource;
 use App\Models\Project;
 use Filament\Actions\Action;
@@ -22,6 +23,9 @@ class ProjectsTable
                     ->searchable()
                     ->sortable()
                     ->weight('medium'),
+                TextColumn::make('slug')
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('owner.email')
                     ->label('Owner')
                     ->searchable(),
@@ -34,11 +38,23 @@ class ProjectsTable
                     ->label('Rate Limit')
                     ->suffix(' rpm')
                     ->sortable(),
+                TextColumn::make('status')
+                    ->badge()
+                    ->formatStateUsing(fn (ProjectStatus|string $state): string => ucfirst($state instanceof ProjectStatus ? $state->value : $state))
+                    ->color(fn (ProjectStatus|string $state): string => match ($state instanceof ProjectStatus ? $state->value : $state) {
+                        'active' => 'success',
+                        'disabled' => 'warning',
+                        'suspended' => 'danger',
+                        default => 'gray',
+                    }),
                 TextColumn::make('project_users_count')
                     ->label('Users')
                     ->sortable(),
                 TextColumn::make('api_request_logs_count')
                     ->label('Requests')
+                    ->sortable(),
+                TextColumn::make('auth_event_logs_count')
+                    ->label('Auth Events')
                     ->sortable(),
                 TextColumn::make('updated_at')
                     ->since()

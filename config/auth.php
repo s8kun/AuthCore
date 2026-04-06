@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ProjectUser;
 use App\Models\User;
 
 return [
@@ -65,6 +66,10 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+        'project_users' => [
+            'driver' => 'eloquent',
+            'model' => ProjectUser::class,
         ],
 
         // 'users' => [

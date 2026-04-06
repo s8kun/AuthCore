@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\ProjectStatus;
 use App\Models\Project;
 use Closure;
 use Illuminate\Http\Request;
@@ -34,6 +35,12 @@ class ResolveProjectFromApiKey
             return response()->json([
                 'message' => 'The provided project key is invalid.',
             ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        if ($project->status !== ProjectStatus::Active) {
+            return response()->json([
+                'message' => 'The requested project is not available.',
+            ], Response::HTTP_FORBIDDEN);
         }
 
         $request->attributes->set(self::PROJECT_ATTRIBUTE, $project);

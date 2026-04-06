@@ -9,10 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('projects', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
             $table->string('name');
+            $table->string('slug')->unique();
             $table->string('api_key')->unique();
+            $table->string('api_secret')->unique();
+            $table->string('status')->default('active')->index();
             $table->unsignedInteger('rate_limit')->default(60);
             $table->timestamps();
         });

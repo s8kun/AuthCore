@@ -26,7 +26,6 @@ class LoginProjectUserRequest extends FormRequest
         return [
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'string'],
-            'device_name' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -36,11 +35,9 @@ class LoginProjectUserRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $email = $this->input('email');
-        $deviceName = $this->input('device_name');
 
         $this->merge([
             'email' => is_string($email) ? Str::of($email)->trim()->lower()->toString() : $email,
-            'device_name' => is_string($deviceName) ? trim($deviceName) : $deviceName,
         ]);
     }
 }

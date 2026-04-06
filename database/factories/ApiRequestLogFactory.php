@@ -26,8 +26,19 @@ class ApiRequestLogFactory extends Factory
                 '/api/v1/auth/me',
                 '/api/v1/auth/logout',
             ]),
+            'route_name' => fake()->randomElement([
+                'api.v1.auth.register',
+                'api.v1.auth.login',
+                'api.v1.auth.me',
+                'api.v1.auth.logout',
+            ]),
             'method' => fake()->randomElement(['GET', 'POST']),
+            'email' => fake()->safeEmail(),
             'ip_address' => fake()->ipv4(),
+            'user_agent' => fake()->userAgent(),
+            'status_code' => 200,
+            'success' => true,
+            'metadata' => [],
             'created_at' => now(),
         ];
     }
