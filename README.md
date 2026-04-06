@@ -7,52 +7,348 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
-## About Laravel
+# Auth-as-a-Service
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+A multi-tenant authentication platform built with Laravel, Filament, and Sanctum. Provides isolated authentication systems for multiple client projects through a single API.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Multi-Tenant Authentication**: Each project gets its own isolated user base
+- **Comprehensive Auth Flows**: Registration, login, logout, token refresh, password reset
+- **OTP Verification**: Email verification, password reset, login verification
+- **Ghost Accounts**: Pre-register accounts for later claiming
+- **Audit Logging**: Full API request and authentication event logging
+- **Project Management**: Filament admin panel for project configuration
+- **Custom Email Templates**: Per-project email templates with variables
+- **Custom SMTP Support**: Project-specific email settings
+- **Rate Limiting**: Project-scoped rate limiting
+- **API-First Design**: RESTful API with proper HTTP status codes
 
-## Learning Laravel
+## Quick Start
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Installation
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+1. Clone the repository:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone https://github.com/yourusername/auth-as-a-service.git
+cd auth-as-a-service
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+2. Install dependencies:
+
+```bash
+composer install
+npm install
+```
+
+3. Configure environment:
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+4. Update `.env` with your database credentials:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=auth_service
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+5. Run migrations and seeders:
+
+```bash
+php artisan migrate
+php artisan db:seed
+```
+
+6. Generate project encryption keys:
+
+```bash
+php artisan passport:keys --ansi
+```
+
+7. Build frontend assets:
+
+```bash
+npm run build
+```
+
+### Running the Application
+
+#### Development Mode
+
+```bash
+composer run dev
+```
+
+This starts:
+
+- PHP development server (`localhost:8000`)
+- Queue worker
+- Log monitor
+- Vite dev server
+
+#### Production Mode
+
+```bash
+php artisan serve
+```
+
+#### Testing
+
+```bash
+php artisan test
+```
+
+## Usage Guide
+
+### 1. Platform Setup
+
+1. **Create Admin Account**:
+    - Visit `/admin/login`
+    - Default admin: `admin@example.com` / `password`
+
+2. **Create a Project**:
+    - Navigate to `/admin/projects`
+    - Click "New Project"
+    - Fill in project details
+    - Save to generate API keys
+
+3. **Configure Project Settings**:
+    - **Auth Settings**: Configure authentication modes, rate limits
+    - **Mail Settings**: Set up email (platform or custom SMTP)
+    - **Email Templates**: Customize email content
+    - **Integration**: Get API keys and integration details
+
+### 2. API Integration
+
+#### Authentication Headers
+
+All API requests require:
+
+```http
+X-Project-Key: your_project_api_key
+Content-Type: application/json
+Accept: application/json
+```
+
+#### Authentication Flow
+
+**1. Register a User**
+
+```http
+POST /api/v1/auth/register
+```
+
+```json
+{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "secret123",
+    "password_confirmation": "secret123"
+}
+```
+
+**2. Login**
+
+```http
+POST /api/v1/auth/login
+```
+
+```json
+{
+    "email": "john@example.com",
+    "password": "secret123"
+}
+```
+
+Response includes `access_token` and `refresh_token`.
+
+**3. Authenticated Requests**
+
+```http
+GET /api/v1/auth/me
+Authorization: Bearer {access_token}
+```
+
+**4. Refresh Token**
+
+```http
+POST /api/v1/auth/refresh
+```
+
+```json
+{
+    "refresh_token": "{refresh_token}"
+}
+```
+
+**5. Logout**
+
+```http
+POST /api/v1/auth/logout
+Authorization: Bearer {access_token}
+```
+
+**6. Password Reset**
+
+```http
+POST /api/v1/auth/forgot-password
+```
+
+```json
+{
+    "email": "john@example.com"
+}
+```
+
+**7. OTP Verification**
+
+```http
+POST /api/v1/auth/send-otp
+```
+
+```json
+{
+    "email": "john@example.com",
+    "purpose": "email_verification"
+}
+```
+
+**8. Ghost Accounts**
+
+```http
+POST /api/v1/auth/ghost-accounts
+```
+
+```json
+{
+    "emails": ["user1@example.com", "user2@example.com"]
+}
+```
+
+### 3. Rate Limiting
+
+- **Default**: 100 requests/minute per project
+- **Authentication endpoints**: 10 requests/minute per IP
+- Configurable per project in Filament admin
+
+### 4. Error Handling
+
+All API endpoints return standardized error responses:
+
+```json
+{
+    "message": "Validation error",
+    "errors": {
+        "email": ["The email field is required."]
+    }
+}
+```
+
+HTTP Status Codes:
+
+- `200`: Success
+- `201`: Created
+- `400`: Bad Request
+- `401`: Unauthorized
+- `403`: Forbidden
+- `404`: Not Found
+- `422`: Validation Error
+- `429`: Too Many Requests
+- `500`: Server Error
+
+## Project Structure
+
+```
+app/
+├── Enums/              # Application enums (AuthEventType, ProjectAuthMode, etc.)
+├── Filament/           # Admin panel resources and pages
+├── Http/
+│   ├── Controllers/    # API controllers
+│   ├── Middleware/     # Custom middleware
+│   ├── Requests/       # Form request validation
+│   └── Resources/      # API resources
+├── Jobs/               # Queued jobs
+├── Mail/               # Mailables
+├── Models/             # Eloquent models
+├── Providers/          # Service providers
+├── Services/           # Business logic services
+└── Support/            # Helper classes
+```
+
+## Database Schema
+
+### Core Tables:
+
+- `users` - Platform administrators
+- `projects` - Client projects with API keys
+- `project_users` - End users per project
+- `project_auth_settings` - Per-project auth configuration
+- `project_mail_settings` - Email settings
+- `project_email_templates` - Custom email templates
+- `api_request_logs` - API audit trail
+- `auth_event_logs` - Authentication events
+
+## Testing
+
+```bash
+# Run all tests
+php artisan test
+
+# Run specific test
+php artisan test --filter=ProjectAuthApiTest
+
+# Run with coverage
+php artisan test --coverage
+```
+
+## API Documentation
+
+Complete API documentation is available at `/docs/api` when running the application.
+
+For detailed API reference, see [API.md](./API.md).
+
+For detailed Project overview,see [Project Overview](./PROJECT_OVERVIEW.md).
+
+## Deployment
+
+### Production Requirements
+
+- PHP 8.3+
+- MySQL 8.0+ or PostgreSQL 13+
+- Redis (recommended for queues/cache)
+- Supervisor (for queue workers)
+
+### Deployment Steps
+
+1. Set up web server (Nginx/Apache)
+2. Configure `.env` production values
+3. Run `composer install --no-dev`
+4. Run `npm run build`
+5. Run `php artisan config:cache`
+6. Run `php artisan route:cache`
+7. Run `php artisan view:cache`
+8. Set up Supervisor for queue workers
+9. Configure SSL/TLS
+
+## Support
+
+- **Documentation**: `/docs/api` for API docs
+- **Admin Panel**: `/admin` for project management
+- **Issues**: GitHub Issues for bug reports
+- **Security**: Report vulnerabilities to elferjani7@gmail.com
 
 ## Contributing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting pull requests.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Auth-as-a-Service is open-source software licensed under the [MIT license](https://opensource.org/licenses/MIT).
