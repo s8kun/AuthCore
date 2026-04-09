@@ -12,6 +12,7 @@ Instead of building auth separately for every app, the platform lets you create 
 - OTP send, verify, and resend flows
 - forgot-password and reset-password flows
 - ghost-account creation and claim flows
+- project-defined custom user fields with defaults, validation, and API visibility controls
 - per-project auth settings
 - per-project mail settings and email templates
 - request logging and auth-event logging
@@ -31,6 +32,7 @@ Each project has its own:
 - mail settings
 - email templates
 - project users
+- project user field definitions and stored custom-field values
 - OTP records
 - password reset records
 - refresh tokens
@@ -81,6 +83,9 @@ Authorization: Bearer {access_token}
 - registration is unique per project by email
 - if the email belongs to a pending unverified user in the same project, the record is retried instead of creating a duplicate
 - if the email belongs to an active verified user in the same project, registration fails with `422`
+- registration accepts an optional `custom_fields` object based on the active field definitions configured for that project
+- active custom fields can enforce defaults, required rules, enum options, numeric/date constraints, and per-project uniqueness
+- only custom fields marked as API-visible are returned in auth responses and `GET /me`
 - if email verification is enabled, registration returns `202 Accepted` and no tokens
 - if email verification is disabled, registration returns `201 Created` and issues tokens immediately
 
@@ -136,6 +141,7 @@ Inside each project, the panel also exposes:
 - auth settings
 - mail settings
 - email templates
+- project user schema management
 
 ## Tech Stack
 

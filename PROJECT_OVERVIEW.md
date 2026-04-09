@@ -16,6 +16,7 @@ The current public surface is focused on auth:
 - OTP send, verify, and resend
 - password reset request and completion
 - ghost-account invitation and claim
+- project-level custom user field definitions with API and admin visibility controls
 
 ## Core Actors
 
@@ -43,6 +44,7 @@ Each project has:
 - one mail-settings record
 - many email templates
 - many project users
+- many project user field definitions and field values
 - many OTPs, password resets, refresh tokens, and logs
 
 Projects automatically bootstrap default auth settings, mail settings, and email templates on creation.
@@ -78,6 +80,8 @@ Key tables:
 
 - `projects`
 - `project_users`
+- `project_user_fields`
+- `project_user_field_values`
 - `project_auth_settings`
 - `project_mail_settings`
 - `project_email_templates`
@@ -139,6 +143,23 @@ Current template types:
 - `welcome`
 - `email_verification`
 - `ghost_account_invite`
+
+### Project User Fields
+
+Each project can define a custom schema for its project users through `project_user_fields`.
+
+Field definitions currently support:
+
+- a stable `key` and human `label`
+- field types such as `string`, `text`, `integer`, `decimal`, `boolean`, `date`, `datetime`, `enum`, `email`, `url`, `phone`, `uuid`, and `json`
+- optional default values
+- optional enum options
+- required and unique constraints
+- API visibility, admin-form visibility, and table visibility toggles
+- active or disabled state
+- sort ordering
+
+Submitted values are stored in `project_user_field_values` and normalized by type. API responses only expose fields marked as `show_in_api`.
 
 ## Public API Surface
 
@@ -227,6 +248,10 @@ Current behavior:
 - an existing pending unverified user is retried on the same record
 - an existing ghost account blocks normal registration
 - an existing verified account returns a `422` validation error
+- the request can include a `custom_fields` object keyed by the project's active field definitions
+- undefined custom field keys are rejected
+- defaults are applied when a field is omitted and a default exists
+- project-scoped uniqueness is enforced for custom fields that enable it
 
 When email verification is enabled for the project:
 
@@ -438,6 +463,7 @@ The project resource includes sub-pages for:
 - auth settings
 - mail settings
 - email templates
+- project user schema
 
 This means the product is not just an API backend. It is already structured as an operator-facing auth platform with an admin control plane.
 

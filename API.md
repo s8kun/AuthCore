@@ -1,8 +1,14 @@
 # Auth-as-a-Service API Reference
 
-This document describes the current public API implemented by the project. The machine-readable contract lives in [`api.json`](/home/abdullahelferjani/Auth-as-a-Service/api.json).
+This document describes the current public API implemented by the project. The machine-readable contract lives in [`api.json`](./api.json).
 
 ## Base URL
+
+```text
+/api/v1/auth
+```
+
+Local example:
 
 ```text
 http://127.0.0.1:8000/api/v1/auth
@@ -45,6 +51,10 @@ Authorization: Bearer {access_token}
       "first_name": "Jane",
       "last_name": "Doe",
       "phone": "+12025550123",
+      "custom_fields": {
+        "status": "approved",
+        "employee_number": "EMP-100"
+      },
       "email_verified_at": "2026-04-06T12:00:00Z",
       "last_login_at": null,
       "is_active": true,
@@ -76,6 +86,9 @@ Authorization: Bearer {access_token}
       "first_name": "Jane",
       "last_name": "Doe",
       "phone": "+12025550123",
+      "custom_fields": {
+        "status": "pending"
+      },
       "email_verified_at": null,
       "last_login_at": null,
       "is_active": true,
@@ -123,6 +136,35 @@ Authorization: Bearer {access_token}
 - `ghost_account_claim`
 - `email_verification`
 
+## Custom Fields
+
+Registration can include an optional `custom_fields` object. The available keys come from the active project user field schema configured in the admin panel.
+
+Current field types supported by the schema system:
+
+- `string`
+- `text`
+- `integer`
+- `decimal`
+- `boolean`
+- `date`
+- `datetime`
+- `enum`
+- `email`
+- `url`
+- `phone`
+- `uuid`
+- `json`
+
+Current API behavior:
+
+- undefined custom field keys are rejected with `422`
+- inactive field definitions are ignored by validation and response serialization
+- required fields are enforced unless a default value exists
+- unique fields are enforced within the current project
+- only fields marked as API-visible are returned in `user.custom_fields`
+- defaults are included in the response even when the client does not submit a value
+
 ## Endpoints
 
 ### Register
@@ -139,6 +181,10 @@ Request body:
   "first_name": "Jane",
   "last_name": "Doe",
   "phone": "+12025550123",
+  "custom_fields": {
+    "status": "approved",
+    "employee_number": "EMP-100"
+  },
   "password": "password",
   "password_confirmation": "password"
 }
@@ -156,6 +202,10 @@ curl --request POST 'http://127.0.0.1:8000/api/v1/auth/register' \
     "first_name": "Jane",
     "last_name": "Doe",
     "phone": "+12025550123",
+    "custom_fields": {
+      "status": "approved",
+      "employee_number": "EMP-100"
+    },
     "password": "password",
     "password_confirmation": "password"
   }'
@@ -168,7 +218,7 @@ Responses:
 - `400`: missing `X-Project-Key`
 - `401`: invalid project key
 - `403`: project unavailable
-- `422`: validation failure or duplicate verified email
+- `422`: validation failure, duplicate verified email, invalid custom fields, or custom-field uniqueness conflict
 - `429`: rate limited
 
 ### Login
@@ -571,6 +621,36 @@ Responses:
 - `401`: unauthenticated
 - `403`: wrong project token, inactive account, or pending verification
 - `429`: rate limited
+
+Example response:
+
+```json
+{
+  "data": {
+    "id": "uuid",
+    "project_id": "uuid",
+    "email": "user@example.com",
+    "first_name": "Jane",
+    "last_name": "Doe",
+    "phone": "+12025550123",
+    "custom_fields": {
+      "status": "approved",
+      "employee_number": "EMP-100"
+    },
+    "email_verified_at": "2026-04-06T12:00:00Z",
+    "last_login_at": "2026-04-06T12:15:00Z",
+    "is_active": true,
+    "is_ghost": false,
+    "claimed_at": null,
+    "invited_at": null,
+    "ghost_source": null,
+    "must_set_password": false,
+    "must_verify_email": false,
+    "created_at": "2026-04-06T12:00:00Z",
+    "updated_at": "2026-04-06T12:15:00Z"
+  }
+}
+```
 
 ### Logout
 
