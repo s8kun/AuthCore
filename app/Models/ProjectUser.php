@@ -69,6 +69,14 @@ class ProjectUser extends Authenticatable
     }
 
     /**
+     * Get the custom field values for the user.
+     */
+    public function customFieldValues(): HasMany
+    {
+        return $this->hasMany(ProjectUserFieldValue::class);
+    }
+
+    /**
      * Determine whether the account is pending email verification.
      */
     public function isPendingEmailVerification(): bool

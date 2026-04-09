@@ -9,6 +9,7 @@ use App\Filament\Resources\Projects\Pages\ProjectAuthSettings;
 use App\Filament\Resources\Projects\Pages\ProjectEmailTemplates;
 use App\Filament\Resources\Projects\Pages\ProjectIntegrationDetails;
 use App\Filament\Resources\Projects\Pages\ProjectMailSettings;
+use App\Filament\Resources\Projects\Pages\ProjectUserSchema;
 use App\Filament\Resources\Projects\Schemas\ProjectForm;
 use App\Filament\Resources\Projects\Tables\ProjectsTable;
 use App\Models\Project;
@@ -80,6 +81,7 @@ class ProjectResource extends Resource
             ProjectMailSettings::class,
             ProjectAuthSettings::class,
             ProjectEmailTemplates::class,
+            ProjectUserSchema::class,
             ProjectIntegrationDetails::class,
         ]);
     }
@@ -93,6 +95,7 @@ class ProjectResource extends Resource
             'mail-settings' => ProjectMailSettings::route('/{record}/mail-settings'),
             'auth-settings' => ProjectAuthSettings::route('/{record}/auth-settings'),
             'email-templates' => ProjectEmailTemplates::route('/{record}/email-templates'),
+            'project-user-schema' => ProjectUserSchema::route('/{record}/project-user-schema'),
             'integration' => ProjectIntegrationDetails::route('/{record}/integration'),
         ];
     }

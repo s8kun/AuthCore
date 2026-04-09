@@ -8,6 +8,7 @@ use App\Enums\ProjectOtpPurpose;
 use App\Models\Project;
 use App\Models\ProjectAuthSetting;
 use App\Models\ProjectUser;
+use App\Services\ProjectUserFields\SaveProjectUserFieldValues;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -21,6 +22,7 @@ class ProjectAuthService
         private readonly ProjectMailService $projectMailService,
         private readonly ProjectOtpService $projectOtpService,
         private readonly ProjectTokenService $projectTokenService,
+        private readonly SaveProjectUserFieldValues $saveProjectUserFieldValues,
     ) {}
 
     /**
@@ -32,8 +34,9 @@ class ProjectAuthService
     public function register(Project $project, array $attributes, Request $request): array
     {
         $settings = $project->authSettings ?? $project->authSettings()->firstOrCreate([], ProjectAuthSetting::defaults());
+        $customFieldPayload = is_array($attributes['custom_fields'] ?? null) ? $attributes['custom_fields'] : [];
 
-        $registration = DB::transaction(function () use ($project, $settings, $attributes): array {
+        $registration = DB::transaction(function () use ($project, $settings, $attributes, $customFieldPayload): array {
             /** @var ProjectUser|null $existingUser */
             $existingUser = ProjectUser::query()
                 ->whereBelongsTo($project)
@@ -58,6 +61,12 @@ class ProjectAuthService
             $projectUser = $existingUser instanceof ProjectUser
                 ? $this->retryRegistration($existingUser, $attributes, $settings)
                 : $this->createProjectUser($project, $attributes, $settings);
+
+            $this->saveProjectUserFieldValues->save(
+                $projectUser,
+                $customFieldPayload,
+                applyDefaults: true,
+            );
 
             if ($projectUser->isPendingEmailVerification()) {
                 $this->projectTokenService->revokeAllTokensForUser($projectUser);

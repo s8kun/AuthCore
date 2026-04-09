@@ -80,6 +80,22 @@ class Project extends Model
     }
 
     /**
+     * Get the custom field definitions for the project.
+     */
+    public function projectUserFields(): HasMany
+    {
+        return $this->hasMany(ProjectUserField::class);
+    }
+
+    /**
+     * Get the custom field values for the project.
+     */
+    public function projectUserFieldValues(): HasMany
+    {
+        return $this->hasMany(ProjectUserFieldValue::class);
+    }
+
+    /**
      * Get the API request logs for the project.
      */
     public function apiRequestLogs(): HasMany

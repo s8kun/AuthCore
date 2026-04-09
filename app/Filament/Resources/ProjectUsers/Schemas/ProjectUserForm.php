@@ -2,11 +2,16 @@
 
 namespace App\Filament\Resources\ProjectUsers\Schemas;
 
+use App\Models\Project;
 use App\Models\ProjectUser;
+use App\Services\ProjectUserFields\BuildProjectUserFieldComponents;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -24,6 +29,7 @@ class ProjectUserForm
                                 titleAttribute: 'name',
                                 modifyQueryUsing: fn (Builder $query) => $query->whereBelongsTo(auth()->user(), 'owner'),
                             )
+                            ->live()
                             ->required()
                             ->searchable()
                             ->preload(),
@@ -55,6 +61,32 @@ class ProjectUserForm
                             ->default(false),
                         Toggle::make('must_verify_email')
                             ->default(false),
+                    ])
+                    ->columns(2),
+                Section::make('Custom Fields')
+                    ->description('Built-in fields like email, password, first name, last name, and phone already exist. Use the project schema to add project-specific fields.')
+                    ->schema([
+                        Grid::make(2)
+                            ->schema(function (Get $get, ?ProjectUser $record): array {
+                                $projectId = $record?->project_id ?? $get('project_id');
+
+                                if (! filled($projectId)) {
+                                    return [
+                                        Placeholder::make('custom_fields_project_hint')
+                                            ->label('Custom Fields')
+                                            ->content('Select a project first to load its custom user fields.'),
+                                    ];
+                                }
+
+                                $project = Project::query()->find($projectId);
+
+                                if (! $project instanceof Project) {
+                                    return [];
+                                }
+
+                                return app(BuildProjectUserFieldComponents::class)->forAdminForm($project, $record);
+                            })
+                            ->key('projectUserCustomFields'),
                     ])
                     ->columns(2),
             ]);

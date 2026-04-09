@@ -8,13 +8,17 @@ use App\Filament\Resources\Projects\Pages\ProjectAuthSettings;
 use App\Filament\Resources\Projects\Pages\ProjectEmailTemplates;
 use App\Filament\Resources\Projects\Pages\ProjectIntegrationDetails;
 use App\Filament\Resources\Projects\Pages\ProjectMailSettings;
+use App\Filament\Resources\Projects\Pages\ProjectUserSchema;
 use App\Filament\Resources\Projects\ProjectResource;
+use App\Filament\Resources\ProjectUsers\Pages\CreateProjectUser;
 use App\Models\ApiRequestLog;
 use App\Models\Project;
 use App\Models\ProjectEmailTemplate;
+use App\Models\ProjectUserField;
 use App\Models\User;
 use App\Services\Auth\ProjectMailService;
 use App\Support\ProjectEmailTemplateDefaults;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -162,6 +166,7 @@ it('shows the full project settings sub-navigation inside the admin panel', func
         ->assertSee(ProjectResource::getUrl('mail-settings', ['record' => $project]), false)
         ->assertSee(ProjectResource::getUrl('auth-settings', ['record' => $project]), false)
         ->assertSee(ProjectResource::getUrl('email-templates', ['record' => $project]), false)
+        ->assertSee(ProjectResource::getUrl('project-user-schema', ['record' => $project]), false)
         ->assertSee(ProjectResource::getUrl('integration', ['record' => $project]), false);
 });
 
@@ -171,7 +176,7 @@ it('loads the project settings pages for the owning account', function () {
 
     authenticateFilamentOwner($owner);
 
-    foreach ([ProjectMailSettings::class, ProjectAuthSettings::class, ProjectEmailTemplates::class] as $page) {
+    foreach ([ProjectMailSettings::class, ProjectAuthSettings::class, ProjectEmailTemplates::class, ProjectUserSchema::class] as $page) {
         Livewire::test($page, ['record' => $project->getKey()])
             ->assertOk();
     }
@@ -184,10 +189,86 @@ it('prevents owners from loading another owners project settings pages', functio
 
     authenticateFilamentOwner($owner);
 
-    foreach (['mail-settings', 'auth-settings', 'email-templates'] as $page) {
+    foreach (['mail-settings', 'auth-settings', 'email-templates', 'project-user-schema'] as $page) {
         $this->get(ProjectResource::getUrl($page, ['record' => $otherOwnersProject]))
             ->assertNotFound();
     }
+});
+
+it('creates a project user custom field from the admin project schema page', function () {
+    $owner = User::factory()->create();
+    $project = Project::factory()->for($owner, 'owner')->create();
+
+    authenticateFilamentOwner($owner);
+
+    Livewire::test(ProjectUserSchema::class, ['record' => $project->getKey()])
+        ->callAction(TestAction::make('createField')->table(), [
+            'label' => 'Status',
+            'key' => 'status',
+            'type' => 'enum',
+            'options' => ['pending', 'approved', 'cancelled'],
+            'default_value' => 'pending',
+            'help_text' => 'Current membership status.',
+            'is_required' => true,
+            'is_nullable' => false,
+            'show_in_admin_form' => true,
+            'show_in_api' => true,
+            'show_in_table' => true,
+            'is_active' => true,
+            'sort_order' => 1,
+        ])
+        ->assertNotified();
+
+    $this->assertDatabaseHas(ProjectUserField::class, [
+        'project_id' => $project->id,
+        'key' => 'status',
+        'label' => 'Status',
+        'type' => 'enum',
+        'show_in_table' => true,
+    ]);
+});
+
+it('renders project custom fields in the admin project user create form and persists their values', function () {
+    $owner = User::factory()->create();
+    $project = Project::factory()->for($owner, 'owner')->create();
+
+    ProjectUserField::factory()
+        ->for($project)
+        ->enum(['pending', 'approved'])
+        ->required()
+        ->create([
+            'key' => 'status',
+            'label' => 'Status',
+            'show_in_admin_form' => true,
+        ]);
+
+    authenticateFilamentOwner($owner);
+
+    Livewire::test(CreateProjectUser::class)
+        ->fillForm([
+            'project_id' => $project->id,
+        ])
+        ->fillForm([
+            'email' => 'filament-custom@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'custom_fields' => [
+                'status' => 'approved',
+            ],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors()
+        ->assertNotified();
+
+    $projectUser = $project->projectUsers()->where('email', 'filament-custom@example.com')->firstOrFail();
+    $statusField = $project->projectUserFields()->where('key', 'status')->firstOrFail();
+
+    $this->assertDatabaseHas('project_user_field_values', [
+        'project_id' => $project->id,
+        'project_user_id' => $projectUser->id,
+        'project_user_field_id' => $statusField->id,
+        'value_string' => 'approved',
+    ]);
 });
 
 it('validates required smtp fields when custom smtp mode is selected', function () {
