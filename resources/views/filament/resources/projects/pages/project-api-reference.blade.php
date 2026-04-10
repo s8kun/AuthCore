@@ -12,7 +12,7 @@
     @endphp
 
     <div class="flex flex-col lg:flex-row gap-8 items-start">
-        
+
         <!-- Main Content -->
         <article class="flex-1 min-w-0 prose prose-slate dark:prose-invert max-w-none">
             <div class="mb-10 space-y-4">
@@ -72,8 +72,8 @@
                             <div class="rounded-xl border border-gray-200 bg-gray-50/50 dark:border-white/10 dark:bg-slate-900/30 overflow-hidden shadow-sm">
                                 <div class="border-b border-gray-200 dark:border-white/10 bg-gray-100/50 dark:bg-slate-800/50 px-4 py-2.5 flex justify-between items-center">
                                     <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Request</span>
-                                    <button 
-                                        x-data="{ copied: false }" 
+                                    <button
+                                        x-data="{ copied: false }"
                                         @click="navigator.clipboard.writeText($refs.reqCode.innerText); copied = true; setTimeout(() => copied = false, 2000)"
                                         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
                                     >
@@ -90,8 +90,8 @@
                             <div class="rounded-xl border border-gray-200 bg-gray-50/50 dark:border-white/10 dark:bg-slate-900/30 overflow-hidden shadow-sm">
                                 <div class="border-b border-gray-200 dark:border-white/10 bg-gray-100/50 dark:bg-slate-800/50 px-4 py-2.5 flex justify-between items-center">
                                     <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Response</span>
-                                    <button 
-                                        x-data="{ copied: false }" 
+                                    <button
+                                        x-data="{ copied: false }"
                                         @click="navigator.clipboard.writeText($refs.resCode.innerText); copied = true; setTimeout(() => copied = false, 2000)"
                                         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
                                     >
@@ -135,12 +135,12 @@
                     }
                 ">
                     @foreach ($anchors as $anchor)
-                        <a 
-                            href="{{ $anchor['href'] }}" 
+                        <a
+                            href="{{ $anchor['href'] }}"
                             :class="activeAnchor === '{{ $anchor['href'] }}' ? 'font-semibold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-500/10' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5'"
                             class="group rounded-md flex items-center gap-3 px-3 py-2 text-sm transition-all"
                         >
-                            <span class="rounded-[4px] px-1.5 py-0.5 text-[10px] font-bold font-mono 
+                            <span class="rounded-[4px] px-1.5 py-0.5 text-[10px] font-bold font-mono
                                 {{ $anchor['method'] === 'GET' ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300' }}
                             ">
                                 {{ $anchor['method'] }}
