@@ -65,8 +65,8 @@ class ProjectsTable
             ])
             ->recordActions([
                 Action::make('integration')
-                    ->label('Integration')
-                    ->icon(Heroicon::Eye)
+                    ->label('Developer Docs')
+                    ->icon(Heroicon::OutlinedBookOpen)
                     ->url(fn (Project $record): string => ProjectResource::getUrl('integration', ['record' => $record])),
                 EditAction::make(),
             ])

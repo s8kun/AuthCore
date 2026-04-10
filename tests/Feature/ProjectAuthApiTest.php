@@ -3,13 +3,16 @@
 use App\Enums\AuthEventType;
 use App\Enums\ProjectEmailTemplateType;
 use App\Enums\ProjectOtpPurpose;
+use App\Enums\ProjectUserFieldType;
 use App\Jobs\SendProjectEmailJob;
 use App\Models\ApiRequestLog;
 use App\Models\AuthEventLog;
 use App\Models\Project;
 use App\Models\ProjectOtp;
 use App\Models\ProjectUser;
+use App\Models\ProjectUserField;
 use App\Models\RefreshToken;
+use App\Services\ProjectUserFields\SaveProjectUserFieldValues;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -25,6 +28,43 @@ function projectHeaders(Project $project, ?string $token = null): array
         'X-Project-Key' => $project->api_key,
         'Authorization' => $token === null ? null : 'Bearer '.$token,
     ]);
+}
+
+/**
+ * @return array{first_name: ProjectUserField, last_name: ProjectUserField, phone: ProjectUserField}
+ */
+function createProjectProfileFields(Project $project): array
+{
+    return [
+        'first_name' => ProjectUserField::factory()
+            ->for($project)
+            ->create([
+                'key' => 'first_name',
+                'label' => 'First Name',
+            ]),
+        'last_name' => ProjectUserField::factory()
+            ->for($project)
+            ->create([
+                'key' => 'last_name',
+                'label' => 'Last Name',
+            ]),
+        'phone' => ProjectUserField::factory()
+            ->for($project)
+            ->create([
+                'key' => 'phone',
+                'label' => 'Phone',
+                'type' => ProjectUserFieldType::Phone,
+            ]),
+    ];
+}
+
+function saveProjectUserCustomFields(ProjectUser $projectUser, array $payload, bool $applyDefaults = true): void
+{
+    app(SaveProjectUserFieldValues::class)->save(
+        $projectUser,
+        $payload,
+        applyDefaults: $applyDefaults,
+    );
 }
 
 it('rejects missing and invalid project keys', function () {
@@ -62,7 +102,10 @@ it('registers, authenticates, returns the current user, and logs out a project u
         ->assertJsonPath('data.user.email', 'new-user@example.com')
         ->assertJsonPath('data.user.project_id', $project->id)
         ->assertJsonPath('data.token_type', 'Bearer')
-        ->assertJsonPath('data.user.is_ghost', false);
+        ->assertJsonPath('data.user.is_ghost', false)
+        ->assertJsonMissingPath('data.user.first_name')
+        ->assertJsonMissingPath('data.user.last_name')
+        ->assertJsonMissingPath('data.user.phone');
 
     $token = $registerResponse->json('data.access_token');
     $refreshToken = $registerResponse->json('data.refresh_token');
@@ -75,7 +118,10 @@ it('registers, authenticates, returns the current user, and logs out a project u
 
     $this->getJson('/api/v1/auth/me', projectHeaders($project, $token))
         ->assertOk()
-        ->assertJsonPath('data.email', 'new-user@example.com');
+        ->assertJsonPath('data.email', 'new-user@example.com')
+        ->assertJsonMissingPath('data.first_name')
+        ->assertJsonMissingPath('data.last_name')
+        ->assertJsonMissingPath('data.phone');
 
     $this->postJson('/api/v1/auth/logout', [], projectHeaders($project, $token))
         ->assertOk()
@@ -133,6 +179,23 @@ it('allows the same email to register in different projects', function () {
     expect(ProjectUser::query()->where('email', 'shared@example.com')->count())->toBe(2);
 });
 
+it('rejects legacy top-level profile fields during registration', function () {
+    $project = Project::factory()->create();
+
+    $this->postJson('/api/v1/auth/register', [
+        'email' => 'legacy-profile@example.com',
+        'first_name' => 'Jane',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ], projectHeaders($project))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['first_name'])
+        ->assertJsonPath(
+            'errors.first_name.0',
+            'The first_name field is no longer built in. Define it as a project custom field and send it inside custom_fields.',
+        );
+});
+
 it('returns a pending registration response when email verification is enabled', function () {
     Queue::fake();
 
@@ -181,6 +244,7 @@ it('retries a pending registration on the same project user record', function ()
     Queue::fake();
 
     $project = Project::factory()->create();
+    $profileFields = createProjectProfileFields($project);
     $project->authSettings()->update([
         'email_verification_enabled' => true,
         'otp_resend_cooldown_seconds' => 300,
@@ -192,10 +256,13 @@ it('retries a pending registration on the same project user record', function ()
         ->create([
             'email' => 'retry@example.com',
             'password' => 'old-password',
-            'first_name' => 'Existing',
-            'last_name' => 'User',
-            'phone' => '+15550000000',
         ]);
+
+    saveProjectUserCustomFields($projectUser, [
+        'first_name' => 'Existing',
+        'last_name' => 'User',
+        'phone' => '+15550000000',
+    ]);
 
     $projectUser->createToken('legacy-pending-token');
 
@@ -227,17 +294,22 @@ it('retries a pending registration on the same project user record', function ()
         'email' => 'retry@example.com',
         'password' => 'new-password',
         'password_confirmation' => 'new-password',
-        'first_name' => 'Updated',
-        'phone' => null,
+        'custom_fields' => [
+            'first_name' => 'Updated',
+            'phone' => null,
+        ],
     ], projectHeaders($project));
 
     $response->assertAccepted()
         ->assertJsonPath('data.user.id', $projectUser->id)
-        ->assertJsonPath('data.user.first_name', 'Updated')
-        ->assertJsonPath('data.user.last_name', 'User')
-        ->assertJsonPath('data.user.phone', null)
+        ->assertJsonPath('data.user.custom_fields.first_name', 'Updated')
+        ->assertJsonPath('data.user.custom_fields.last_name', 'User')
+        ->assertJsonMissingPath('data.user.custom_fields.phone')
         ->assertJsonPath('data.verification_required', true)
-        ->assertJsonMissingPath('data.access_token');
+        ->assertJsonMissingPath('data.access_token')
+        ->assertJsonMissingPath('data.user.first_name')
+        ->assertJsonMissingPath('data.user.last_name')
+        ->assertJsonMissingPath('data.user.phone');
 
     Queue::assertPushed(SendProjectEmailJob::class, function (SendProjectEmailJob $job) use (&$otpCode, $project): bool {
         if (
@@ -255,14 +327,31 @@ it('retries a pending registration on the same project user record', function ()
 
     expect(ProjectUser::query()->whereBelongsTo($project)->where('email', 'retry@example.com')->count())->toBe(1)
         ->and(Hash::check('new-password', $projectUser->refresh()->password))->toBeTrue()
-        ->and($projectUser->first_name)->toBe('Updated')
-        ->and($projectUser->last_name)->toBe('User')
-        ->and($projectUser->phone)->toBeNull()
         ->and(PersonalAccessToken::query()
             ->where('tokenable_type', ProjectUser::class)
             ->where('tokenable_id', $projectUser->id)
             ->count())->toBe(0)
         ->and(RefreshToken::query()->where('project_user_id', $projectUser->id)->whereNull('revoked_at')->count())->toBe(0);
+
+    $this->assertDatabaseHas('project_user_field_values', [
+        'project_id' => $project->id,
+        'project_user_id' => $projectUser->id,
+        'project_user_field_id' => $profileFields['first_name']->id,
+        'value_string' => 'Updated',
+    ]);
+
+    $this->assertDatabaseHas('project_user_field_values', [
+        'project_id' => $project->id,
+        'project_user_id' => $projectUser->id,
+        'project_user_field_id' => $profileFields['last_name']->id,
+        'value_string' => 'User',
+    ]);
+
+    $this->assertDatabaseMissing('project_user_field_values', [
+        'project_id' => $project->id,
+        'project_user_id' => $projectUser->id,
+        'project_user_field_id' => $profileFields['phone']->id,
+    ]);
 
     expect(Hash::check((string) $otpCode, $previousOtp->refresh()->code_hash))->toBeTrue()
         ->and(Hash::check('111111', $previousOtp->code_hash))->toBeFalse();
@@ -273,7 +362,6 @@ it('rejects registering an already verified project user and logs the failure', 
 
     $projectUser = ProjectUser::factory()->for($project)->create([
         'email' => 'verified@example.com',
-        'first_name' => 'Existing',
     ]);
 
     $this->postJson('/api/v1/auth/register', [
@@ -286,7 +374,6 @@ it('rejects registering an already verified project user and logs the failure', 
         ->assertJsonPath('errors.email.0', 'This email is already taken.');
 
     expect(ProjectUser::query()->whereBelongsTo($project)->where('email', 'verified@example.com')->count())->toBe(1)
-        ->and($projectUser->refresh()->first_name)->toBe('Existing')
         ->and(AuthEventLog::query()
             ->whereBelongsTo($project)
             ->where('event_type', AuthEventType::RegistrationFailed)
@@ -761,19 +848,24 @@ it('creates and claims ghost accounts inside the current project', function () {
     Queue::fake();
 
     $project = Project::factory()->create();
+    $profileFields = createProjectProfileFields($project);
     $project->authSettings()->update([
         'ghost_accounts_enabled' => true,
     ]);
 
     $createResponse = $this->postJson('/api/v1/auth/ghost-accounts', [
         'email' => 'ghost@example.com',
-        'first_name' => 'Ghost',
+        'custom_fields' => [
+            'first_name' => 'Ghost',
+        ],
         'send_invite' => true,
     ], projectHeaders($project));
 
     $createResponse->assertCreated()
         ->assertJsonPath('data.email', 'ghost@example.com')
-        ->assertJsonPath('data.is_ghost', true);
+        ->assertJsonPath('data.is_ghost', true)
+        ->assertJsonPath('data.custom_fields.first_name', 'Ghost')
+        ->assertJsonMissingPath('data.first_name');
 
     $otpCode = null;
 
@@ -788,13 +880,57 @@ it('creates and claims ghost accounts inside the current project', function () {
         'otp_code' => $otpCode,
         'password' => 'new-password',
         'password_confirmation' => 'new-password',
+        'custom_fields' => [
+            'first_name' => 'Claimed',
+        ],
     ], projectHeaders($project));
 
     $claimResponse->assertOk()
         ->assertJsonPath('data.user.email', 'ghost@example.com')
-        ->assertJsonPath('data.user.is_ghost', false);
+        ->assertJsonPath('data.user.is_ghost', false)
+        ->assertJsonPath('data.user.custom_fields.first_name', 'Claimed')
+        ->assertJsonMissingPath('data.user.first_name');
+
+    $this->assertDatabaseHas('project_user_field_values', [
+        'project_id' => $project->id,
+        'project_user_id' => ProjectUser::query()->whereBelongsTo($project)->where('email', 'ghost@example.com')->value('id'),
+        'project_user_field_id' => $profileFields['first_name']->id,
+        'value_string' => 'Claimed',
+    ]);
 
     expect(ProjectUser::query()->whereBelongsTo($project)->where('email', 'ghost@example.com')->firstOrFail()->claimed_at)->not->toBeNull();
+});
+
+it('rejects legacy top-level profile fields during ghost-account flows', function () {
+    $project = Project::factory()->create();
+    $project->authSettings()->update([
+        'ghost_accounts_enabled' => true,
+    ]);
+
+    $this->postJson('/api/v1/auth/ghost-accounts', [
+        'email' => 'legacy-ghost@example.com',
+        'first_name' => 'Ghost',
+    ], projectHeaders($project))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['first_name'])
+        ->assertJsonPath(
+            'errors.first_name.0',
+            'The first_name field is no longer built in. Define it as a project custom field and send it inside custom_fields.',
+        );
+
+    $this->postJson('/api/v1/auth/ghost-accounts/claim', [
+        'email' => 'legacy-ghost@example.com',
+        'otp_code' => '123456',
+        'password' => 'new-password',
+        'password_confirmation' => 'new-password',
+        'first_name' => 'Ghost',
+    ], projectHeaders($project))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['first_name'])
+        ->assertJsonPath(
+            'errors.first_name.0',
+            'The first_name field is no longer built in. Define it as a project custom field and send it inside custom_fields.',
+        );
 });
 
 it('rejects ghost account creation and claiming when ghost accounts are disabled', function () {
@@ -807,7 +943,6 @@ it('rejects ghost account creation and claiming when ghost accounts are disabled
 
     $this->postJson('/api/v1/auth/ghost-accounts', [
         'email' => 'ghost-disabled@example.com',
-        'first_name' => 'Ghost',
     ], projectHeaders($project))
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['email'])

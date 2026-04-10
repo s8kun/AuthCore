@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\ProjectAuthSetting;
 use App\Models\ProjectOtp;
 use App\Models\ProjectUser;
+use App\Services\ProjectUserFields\SaveProjectUserFieldValues;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -20,6 +21,7 @@ class GhostAccountService
         private readonly AuthEventLogger $authEventLogger,
         private readonly ProjectOtpService $projectOtpService,
         private readonly ProjectTokenService $projectTokenService,
+        private readonly SaveProjectUserFieldValues $saveProjectUserFieldValues,
     ) {}
 
     /**
@@ -30,6 +32,7 @@ class GhostAccountService
     public function create(Project $project, array $attributes, Request $request): ProjectUser
     {
         $settings = $project->authSettings ?? $project->authSettings()->firstOrCreate([], ProjectAuthSetting::defaults());
+        $customFieldPayload = is_array($attributes['custom_fields'] ?? null) ? $attributes['custom_fields'] : [];
 
         if (! $settings->ghost_accounts_enabled) {
             throw ValidationException::withMessages([
@@ -49,16 +52,13 @@ class GhostAccountService
             ]);
         }
 
-        $ghostAccount = DB::transaction(function () use ($project, $existingUser, $attributes): ProjectUser {
+        $ghostAccount = DB::transaction(function () use ($project, $existingUser, $attributes, $customFieldPayload): ProjectUser {
             $ghostAccount = $existingUser ?? new ProjectUser([
                 'project_id' => $project->getKey(),
                 'email' => $attributes['email'],
             ]);
 
             $ghostAccount->fill([
-                'first_name' => $attributes['first_name'] ?? $ghostAccount->first_name,
-                'last_name' => $attributes['last_name'] ?? $ghostAccount->last_name,
-                'phone' => $attributes['phone'] ?? $ghostAccount->phone,
                 'is_active' => true,
                 'is_ghost' => true,
                 'invited_at' => now(),
@@ -68,6 +68,12 @@ class GhostAccountService
             ]);
 
             $ghostAccount->save();
+
+            $this->saveProjectUserFieldValues->save(
+                $ghostAccount,
+                $customFieldPayload,
+                applyDefaults: ! ($existingUser instanceof ProjectUser),
+            );
 
             return $ghostAccount->refresh();
         });
@@ -104,6 +110,7 @@ class GhostAccountService
     public function claim(Project $project, array $attributes, Request $request): array
     {
         $settings = $project->authSettings ?? $project->authSettings()->firstOrCreate([], ProjectAuthSetting::defaults());
+        $customFieldPayload = is_array($attributes['custom_fields'] ?? null) ? $attributes['custom_fields'] : [];
 
         if (! $settings->ghost_accounts_enabled) {
             throw ValidationException::withMessages([
@@ -144,11 +151,8 @@ class GhostAccountService
             ]);
         }
 
-        $claimedAccount = DB::transaction(function () use ($ghostAccount, $attributes): ProjectUser {
+        $claimedAccount = DB::transaction(function () use ($ghostAccount, $attributes, $customFieldPayload): ProjectUser {
             $ghostAccount->fill([
-                'first_name' => $attributes['first_name'] ?? $ghostAccount->first_name,
-                'last_name' => $attributes['last_name'] ?? $ghostAccount->last_name,
-                'phone' => $attributes['phone'] ?? $ghostAccount->phone,
                 'password' => filled($attributes['password'] ?? null)
                     ? Hash::make((string) $attributes['password'])
                     : $ghostAccount->password,
@@ -160,6 +164,8 @@ class GhostAccountService
             ]);
 
             $ghostAccount->save();
+
+            $this->saveProjectUserFieldValues->save($ghostAccount, $customFieldPayload);
 
             return $ghostAccount->refresh();
         });

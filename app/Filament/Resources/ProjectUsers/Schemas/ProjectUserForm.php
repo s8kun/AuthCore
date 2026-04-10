@@ -37,12 +37,6 @@ class ProjectUserForm
                             ->email()
                             ->required()
                             ->maxLength(255),
-                        TextInput::make('first_name')
-                            ->maxLength(255),
-                        TextInput::make('last_name')
-                            ->maxLength(255),
-                        TextInput::make('phone')
-                            ->maxLength(255),
                         TextInput::make('password')
                             ->password()
                             ->revealable()
@@ -64,7 +58,7 @@ class ProjectUserForm
                     ])
                     ->columns(2),
                 Section::make('Custom Fields')
-                    ->description('Built-in fields like email, password, first name, last name, and phone already exist. Use the project schema to add project-specific fields.')
+                    ->description('Use the project schema to add profile and business fields like first_name, last_name, phone, department, or external_id.')
                     ->schema([
                         Grid::make(2)
                             ->schema(function (Get $get, ?ProjectUser $record): array {

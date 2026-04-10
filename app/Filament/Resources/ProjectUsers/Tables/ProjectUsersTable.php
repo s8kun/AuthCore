@@ -22,10 +22,6 @@ class ProjectUsersTable
                 TextColumn::make('email')
                     ->searchable()
                     ->copyable(),
-                TextColumn::make('first_name')
-                    ->searchable(),
-                TextColumn::make('last_name')
-                    ->searchable(),
                 IconColumn::make('is_active')
                     ->boolean(),
                 IconColumn::make('is_ghost')

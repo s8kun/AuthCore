@@ -65,7 +65,7 @@ class ProjectAuthService
             $this->saveProjectUserFieldValues->save(
                 $projectUser,
                 $customFieldPayload,
-                applyDefaults: true,
+                applyDefaults: ! ($existingUser instanceof ProjectUser),
             );
 
             if ($projectUser->isPendingEmailVerification()) {
@@ -321,9 +321,6 @@ class ProjectAuthService
         return $project->projectUsers()->create([
             'email' => $attributes['email'],
             'password' => $attributes['password'],
-            'first_name' => $attributes['first_name'] ?? null,
-            'last_name' => $attributes['last_name'] ?? null,
-            'phone' => $attributes['phone'] ?? null,
             'email_verified_at' => $settings->email_verification_enabled ? null : now(),
             'is_active' => true,
             'is_ghost' => false,
@@ -345,12 +342,6 @@ class ProjectAuthService
             'is_ghost' => false,
             'must_verify_email' => $settings->email_verification_enabled,
         ];
-
-        foreach (['first_name', 'last_name', 'phone'] as $field) {
-            if (array_key_exists($field, $attributes)) {
-                $updates[$field] = $attributes[$field];
-            }
-        }
 
         $projectUser->fill($updates)->save();
 

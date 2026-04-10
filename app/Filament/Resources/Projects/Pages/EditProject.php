@@ -18,9 +18,13 @@ class EditProject extends EditRecord
     {
         return [
             Action::make('integration')
-                ->label('Integration Details')
-                ->icon(Heroicon::Eye)
+                ->label('Developer Docs')
+                ->icon(Heroicon::OutlinedBookOpen)
                 ->url(fn (): string => ProjectResource::getUrl('integration', ['record' => $this->getRecord()])),
+            Action::make('apiReference')
+                ->label('API Reference')
+                ->icon(Heroicon::OutlinedCodeBracketSquare)
+                ->url(fn (): string => ProjectResource::getUrl('api-reference', ['record' => $this->getRecord()])),
             Action::make('rotateApiKey')
                 ->label('Rotate API Key')
                 ->icon(Heroicon::Key)

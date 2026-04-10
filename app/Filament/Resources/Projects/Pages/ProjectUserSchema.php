@@ -43,7 +43,7 @@ class ProjectUserSchema extends ManageRelatedRecords
 
     public function getSubheading(): ?string
     {
-        return 'Define project-specific fields for project users. Built-in fields like email, password, first name, last name, phone, and account flags already exist and should not be recreated here.';
+        return 'Define project-specific fields for project users. Only system-managed auth and account-state fields are built in; profile fields like first_name, last_name, and phone belong in this schema.';
     }
 
     protected function getHeaderActions(): array
@@ -66,7 +66,7 @@ class ProjectUserSchema extends ManageRelatedRecords
                         ->schema([
                             Placeholder::make('examples')
                                 ->hiddenLabel()
-                                ->content('Examples: status, department, employee_number, salary, onboarding_stage, external_id.'),
+                                ->content('Examples: first_name, last_name, phone, status, department, employee_number, onboarding_stage, external_id.'),
                         ]),
                 ]),
         ];
@@ -202,7 +202,7 @@ class ProjectUserSchema extends ManageRelatedRecords
                     TextInput::make('key')
                         ->required()
                         ->maxLength(64)
-                        ->helperText('Lowercase snake_case only. Built-in fields like email and password are reserved.')
+                        ->helperText('Lowercase snake_case only. System keys like email, password, verification timestamps, and account flags are reserved.')
                         ->regex('/^[a-z][a-z0-9_]*$/'),
                     Select::make('type')
                         ->options(ProjectUserFieldType::options())

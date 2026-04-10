@@ -1,9 +1,12 @@
 <?php
 
+use App\Enums\ProjectUserFieldType;
+use App\Filament\Pages\ProjectDocsIndex;
 use App\Filament\Resources\ApiRequestLogs\Pages\ListApiRequestLogs;
 use App\Filament\Resources\Projects\Pages\CreateProject;
 use App\Filament\Resources\Projects\Pages\EditProject;
 use App\Filament\Resources\Projects\Pages\ListProjects;
+use App\Filament\Resources\Projects\Pages\ProjectApiReference;
 use App\Filament\Resources\Projects\Pages\ProjectAuthSettings;
 use App\Filament\Resources\Projects\Pages\ProjectEmailTemplates;
 use App\Filament\Resources\Projects\Pages\ProjectIntegrationDetails;
@@ -11,6 +14,8 @@ use App\Filament\Resources\Projects\Pages\ProjectMailSettings;
 use App\Filament\Resources\Projects\Pages\ProjectUserSchema;
 use App\Filament\Resources\Projects\ProjectResource;
 use App\Filament\Resources\ProjectUsers\Pages\CreateProjectUser;
+use App\Filament\Widgets\Dashboard\FeatureAdoptionOverview;
+use App\Filament\Widgets\Dashboard\PlatformOverview;
 use App\Models\ApiRequestLog;
 use App\Models\Project;
 use App\Models\ProjectEmailTemplate;
@@ -83,7 +88,7 @@ it('lists only the authenticated owners projects', function () {
         ->assertCanNotSeeTableRecords([$otherOwnersProject]);
 });
 
-it('creates a project from the admin panel and redirects to integration details', function () {
+it('creates a project from the admin panel and redirects to developer docs', function () {
     $owner = User::factory()->create();
 
     authenticateFilamentOwner($owner);
@@ -132,9 +137,34 @@ it('updates a project from the admin panel', function () {
         ->and($project->rate_limit)->toBe(180);
 });
 
-it('shows project integration details inside the admin panel', function () {
+it('shows project developer docs inside the admin panel', function () {
     $owner = User::factory()->create();
     $project = Project::factory()->for($owner, 'owner')->create();
+
+    $project->authSettings()->update([
+        'email_verification_enabled' => true,
+        'ghost_accounts_enabled' => true,
+    ]);
+
+    ProjectUserField::factory()
+        ->for($project)
+        ->enum(['pending', 'approved'])
+        ->create([
+            'key' => 'status',
+            'label' => 'Status',
+            'default_value' => 'pending',
+            'show_in_api' => true,
+        ]);
+
+    ProjectUserField::factory()
+        ->for($project)
+        ->create([
+            'key' => 'internal_notes',
+            'label' => 'Internal Notes',
+            'type' => ProjectUserFieldType::Text,
+            'show_in_api' => false,
+            'description' => 'Internal use only.',
+        ]);
 
     ApiRequestLog::factory()
         ->count(2)
@@ -148,11 +178,86 @@ it('shows project integration details inside the admin panel', function () {
     ])
         ->assertOk()
         ->assertSee($project->api_key)
+        ->assertSee('Quick Start')
+        ->assertSee('First Flow')
+        ->assertSee('Configured Behavior')
+        ->assertSee('Custom Fields')
+        ->assertSee('Developer Docs')
+        ->assertDontSee('first_name');
+});
+
+it('shows project api reference inside the admin panel', function () {
+    $owner = User::factory()->create();
+    $project = Project::factory()->for($owner, 'owner')->create();
+
+    $project->authSettings()->update([
+        'email_verification_enabled' => true,
+        'otp_enabled' => true,
+        'forgot_password_enabled' => true,
+        'ghost_accounts_enabled' => true,
+    ]);
+
+    authenticateFilamentOwner($owner);
+
+    Livewire::test(ProjectApiReference::class, [
+        'record' => $project->getKey(),
+    ])
+        ->assertOk()
         ->assertSee(route('api.v1.auth.register'))
         ->assertSee(route('api.v1.auth.login'))
         ->assertSee(route('api.v1.auth.me'))
         ->assertSee(route('api.v1.auth.logout'))
-        ->assertSee('Bearer <plain-text-token>');
+        ->assertSee(route('api.v1.auth.resend-otp'))
+        ->assertSee(route('api.v1.auth.ghost-accounts.store'))
+        ->assertSee(route('api.v1.auth.ghost-accounts.claim'))
+        ->assertSee('Possible Errors')
+        ->assertSee('Claim Ghost Account')
+        ->assertSee('Refresh');
+});
+
+it('shows the global docs landing page in the admin panel', function () {
+    $owner = User::factory()->create();
+    $project = Project::factory()->for($owner, 'owner')->create([
+        'name' => 'Docs Demo',
+    ]);
+
+    authenticateFilamentOwner($owner);
+
+    $this->get(ProjectDocsIndex::getUrl(isAbsolute: false))
+        ->assertOk()
+        ->assertSee('Docs Playbook')
+        ->assertSee('Integration Checklist')
+        ->assertSee('Docs Demo')
+        ->assertSee(ProjectResource::getUrl('integration', ['record' => $project]), false)
+        ->assertSee(ProjectResource::getUrl('api-reference', ['record' => $project]), false);
+});
+
+it('shows product-specific dashboard widgets', function () {
+    $owner = User::factory()->create();
+    $project = Project::factory()->for($owner, 'owner')->create([
+        'name' => 'Docs Demo',
+    ]);
+
+    $project->authSettings()->update([
+        'email_verification_enabled' => true,
+        'otp_enabled' => true,
+        'forgot_password_enabled' => true,
+        'ghost_accounts_enabled' => true,
+    ]);
+
+    authenticateFilamentOwner($owner);
+
+    Livewire::test(PlatformOverview::class)
+        ->assertOk()
+        ->assertSee('Projects')
+        ->assertSee('Project Users')
+        ->assertSee('Continue Setup')
+        ->assertSee('Docs Demo');
+
+    Livewire::test(FeatureAdoptionOverview::class)
+        ->assertOk()
+        ->assertSee('Email Verification')
+        ->assertSee('Ghost Accounts');
 });
 
 it('shows the full project settings sub-navigation inside the admin panel', function () {
@@ -167,7 +272,8 @@ it('shows the full project settings sub-navigation inside the admin panel', func
         ->assertSee(ProjectResource::getUrl('auth-settings', ['record' => $project]), false)
         ->assertSee(ProjectResource::getUrl('email-templates', ['record' => $project]), false)
         ->assertSee(ProjectResource::getUrl('project-user-schema', ['record' => $project]), false)
-        ->assertSee(ProjectResource::getUrl('integration', ['record' => $project]), false);
+        ->assertSee(ProjectResource::getUrl('integration', ['record' => $project]), false)
+        ->assertSee(ProjectResource::getUrl('api-reference', ['record' => $project]), false);
 });
 
 it('loads the project settings pages for the owning account', function () {
@@ -176,7 +282,7 @@ it('loads the project settings pages for the owning account', function () {
 
     authenticateFilamentOwner($owner);
 
-    foreach ([ProjectMailSettings::class, ProjectAuthSettings::class, ProjectEmailTemplates::class, ProjectUserSchema::class] as $page) {
+    foreach ([ProjectMailSettings::class, ProjectAuthSettings::class, ProjectEmailTemplates::class, ProjectUserSchema::class, ProjectApiReference::class] as $page) {
         Livewire::test($page, ['record' => $project->getKey()])
             ->assertOk();
     }
@@ -189,13 +295,13 @@ it('prevents owners from loading another owners project settings pages', functio
 
     authenticateFilamentOwner($owner);
 
-    foreach (['mail-settings', 'auth-settings', 'email-templates', 'project-user-schema'] as $page) {
+    foreach (['mail-settings', 'auth-settings', 'email-templates', 'project-user-schema', 'integration', 'api-reference'] as $page) {
         $this->get(ProjectResource::getUrl($page, ['record' => $otherOwnersProject]))
             ->assertNotFound();
     }
 });
 
-it('creates a project user custom field from the admin project schema page', function () {
+it('allows profile-like custom field keys from the admin project schema page', function () {
     $owner = User::factory()->create();
     $project = Project::factory()->for($owner, 'owner')->create();
 
@@ -203,17 +309,13 @@ it('creates a project user custom field from the admin project schema page', fun
 
     Livewire::test(ProjectUserSchema::class, ['record' => $project->getKey()])
         ->callAction(TestAction::make('createField')->table(), [
-            'label' => 'Status',
-            'key' => 'status',
-            'type' => 'enum',
-            'options' => ['pending', 'approved', 'cancelled'],
-            'default_value' => 'pending',
-            'help_text' => 'Current membership status.',
-            'is_required' => true,
-            'is_nullable' => false,
+            'label' => 'First Name',
+            'key' => 'first_name',
+            'type' => ProjectUserFieldType::StringType->value,
+            'help_text' => 'The project-specific first name field.',
             'show_in_admin_form' => true,
             'show_in_api' => true,
-            'show_in_table' => true,
+            'show_in_table' => false,
             'is_active' => true,
             'sort_order' => 1,
         ])
@@ -221,10 +323,9 @@ it('creates a project user custom field from the admin project schema page', fun
 
     $this->assertDatabaseHas(ProjectUserField::class, [
         'project_id' => $project->id,
-        'key' => 'status',
-        'label' => 'Status',
-        'type' => 'enum',
-        'show_in_table' => true,
+        'key' => 'first_name',
+        'label' => 'First Name',
+        'type' => ProjectUserFieldType::StringType->value,
     ]);
 });
 

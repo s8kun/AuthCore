@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Projects;
 use App\Filament\Resources\Projects\Pages\CreateProject;
 use App\Filament\Resources\Projects\Pages\EditProject;
 use App\Filament\Resources\Projects\Pages\ListProjects;
+use App\Filament\Resources\Projects\Pages\ProjectApiReference;
 use App\Filament\Resources\Projects\Pages\ProjectAuthSettings;
 use App\Filament\Resources\Projects\Pages\ProjectEmailTemplates;
 use App\Filament\Resources\Projects\Pages\ProjectIntegrationDetails;
@@ -78,11 +79,12 @@ class ProjectResource extends Resource
     {
         return $page->generateNavigationItems([
             EditProject::class,
-            ProjectMailSettings::class,
             ProjectAuthSettings::class,
+            ProjectMailSettings::class,
             ProjectEmailTemplates::class,
             ProjectUserSchema::class,
             ProjectIntegrationDetails::class,
+            ProjectApiReference::class,
         ]);
     }
 
@@ -97,6 +99,7 @@ class ProjectResource extends Resource
             'email-templates' => ProjectEmailTemplates::route('/{record}/email-templates'),
             'project-user-schema' => ProjectUserSchema::route('/{record}/project-user-schema'),
             'integration' => ProjectIntegrationDetails::route('/{record}/integration'),
+            'api-reference' => ProjectApiReference::route('/{record}/api-reference'),
         ];
     }
 }

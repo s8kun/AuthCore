@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\V1;
 
 use App\Http\Middleware\ResolveProjectFromApiKey;
 use App\Models\Project;
+use App\Models\ProjectUser;
 use App\Services\ProjectUserFields\BuildProjectUserValidationRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -35,10 +36,8 @@ class RegisterProjectUserRequest extends FormRequest
                 'email',
                 'max:255',
             ],
-            'first_name' => ['nullable', 'string', 'max:255'],
-            'last_name' => ['nullable', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:255'],
             'password' => ['required', 'confirmed', Password::defaults()],
+            ...$this->profileAttributeRules(),
         ];
 
         $project = $this->resolveProject();
@@ -49,7 +48,21 @@ class RegisterProjectUserRequest extends FormRequest
 
         return [
             ...$rules,
-            ...app(BuildProjectUserValidationRules::class)->for($project),
+            ...app(BuildProjectUserValidationRules::class)->for($project, $this->resolveExistingProjectUser($project)),
+        ];
+    }
+
+    /**
+     * Get the custom validation messages for the request.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'first_name.prohibited' => 'The first_name field is no longer built in. Define it as a project custom field and send it inside custom_fields.',
+            'last_name.prohibited' => 'The last_name field is no longer built in. Define it as a project custom field and send it inside custom_fields.',
+            'phone.prohibited' => 'The phone field is no longer built in. Define it as a project custom field and send it inside custom_fields.',
         ];
     }
 
@@ -63,15 +76,6 @@ class RegisterProjectUserRequest extends FormRequest
 
         if ($this->exists('email')) {
             $payload['email'] = is_string($email) ? Str::of($email)->trim()->lower()->toString() : $email;
-        }
-
-        foreach (['first_name', 'last_name', 'phone'] as $field) {
-            if (! $this->exists($field)) {
-                continue;
-            }
-
-            $value = $this->input($field);
-            $payload[$field] = is_string($value) ? trim($value) : $value;
         }
 
         $this->merge($payload);
@@ -94,7 +98,7 @@ class RegisterProjectUserRequest extends FormRequest
                 }
 
                 $allowedKeys = app(BuildProjectUserValidationRules::class)
-                    ->for($project);
+                    ->for($project, $this->resolveExistingProjectUser($project));
 
                 $expectedKeys = collect(array_keys($allowedKeys))
                     ->filter(fn (string $key): bool => str_starts_with($key, 'custom_fields.'))
@@ -120,5 +124,36 @@ class RegisterProjectUserRequest extends FormRequest
         $project = $this->attributes->get(ResolveProjectFromApiKey::PROJECT_ATTRIBUTE);
 
         return $project instanceof Project ? $project : null;
+    }
+
+    /**
+     * Resolve the existing project user for the submitted email address.
+     */
+    private function resolveExistingProjectUser(Project $project): ?ProjectUser
+    {
+        $email = $this->input('email');
+
+        if (! is_string($email) || blank($email)) {
+            return null;
+        }
+
+        return ProjectUser::query()
+            ->whereBelongsTo($project)
+            ->where('email', $email)
+            ->first();
+    }
+
+    /**
+     * Get the rules that prohibit legacy top-level profile attributes.
+     *
+     * @return array<string, array<int, string>>
+     */
+    private function profileAttributeRules(): array
+    {
+        return [
+            'first_name' => ['prohibited'],
+            'last_name' => ['prohibited'],
+            'phone' => ['prohibited'],
+        ];
     }
 }

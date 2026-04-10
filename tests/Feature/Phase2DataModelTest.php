@@ -32,15 +32,22 @@ it('uses uuid ids for the auth provider models and provisions related project de
             'project_id',
             'email',
             'password',
-            'first_name',
-            'last_name',
-            'phone',
             'email_verified_at',
+            'last_login_at',
             'is_active',
             'is_ghost',
+            'claimed_at',
+            'invited_at',
+            'ghost_source',
+            'must_set_password',
+            'must_verify_email',
             'created_at',
             'updated_at',
         ]))->toBeTrue()
+        ->and(Schema::hasColumn('project_users', 'first_name'))->toBeFalse()
+        ->and(Schema::hasColumn('project_users', 'last_name'))->toBeFalse()
+        ->and(Schema::hasColumn('project_users', 'phone'))->toBeFalse()
+        ->and(Schema::hasColumn('project_users', 'role'))->toBeFalse()
         ->and(Schema::hasColumns('api_request_logs', [
             'id',
             'project_id',
