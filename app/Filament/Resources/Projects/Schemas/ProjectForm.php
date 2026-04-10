@@ -25,7 +25,7 @@ class ProjectForm
                         TextInput::make('slug')
                             ->readOnly()
                             ->dehydrated(false)
-                            ->placeholder('Generated automatically after save'),
+                            ->placeholder('Set after save'),
                         Select::make('status')
                             ->options(collect(ProjectStatus::cases())->mapWithKeys(fn (ProjectStatus $status): array => [
                                 $status->value => ucfirst($status->value),
@@ -46,18 +46,16 @@ class ProjectForm
                             ->label('Project API Key')
                             ->default(fn (): string => Project::generateApiKey())
                             ->readOnly()
-                            ->required()
-                            ->helperText('This key is generated automatically and shown again on the integration details page after save.'),
+                            ->required(),
                         TextInput::make('api_secret')
                             ->label('Project API Secret')
                             ->password()
                             ->revealable()
                             ->default(fn (): string => Project::generateApiSecret())
                             ->readOnly()
-                            ->required()
-                            ->helperText('Reserved for future server-to-server flows and safe rotation.'),
+                            ->required(),
                         Placeholder::make('owner_email')
-                            ->label('Owner Account')
+                            ->label('Owner')
                             ->content(fn (?Project $record): string => $record?->owner?->email ?? (string) auth()->user()?->email),
                     ])
                     ->columns(2),

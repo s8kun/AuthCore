@@ -21,7 +21,7 @@ class ProjectApiReference extends ProjectDocsPage
 
     public function getSubheading(): ?string
     {
-        return 'Use this endpoint catalog when you need the exact request and response contract for a project-scoped auth flow.';
+        return 'Exact request and response examples for this project.';
     }
 
     /**

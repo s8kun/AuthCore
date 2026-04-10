@@ -21,7 +21,7 @@ class ProjectIntegrationDetails extends ProjectDocsPage
 
     public function getSubheading(): ?string
     {
-        return 'Start here for the fastest path from project credentials to a successful authenticated request.';
+        return 'Project-specific auth docs and quick-start examples.';
     }
 
     /**

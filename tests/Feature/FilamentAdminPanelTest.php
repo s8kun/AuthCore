@@ -180,9 +180,10 @@ it('shows project developer docs inside the admin panel', function () {
         ->assertSee($project->api_key)
         ->assertSee('Quick Start')
         ->assertSee('First Flow')
-        ->assertSee('Configured Behavior')
+        ->assertSee('Features')
         ->assertSee('Custom Fields')
-        ->assertSee('Developer Docs')
+        ->assertSee('Use these values to make your first project-scoped auth request.')
+        ->assertDontSee('Quick Start Integration')
         ->assertDontSee('first_name');
 });
 
@@ -212,7 +213,9 @@ it('shows project api reference inside the admin panel', function () {
         ->assertSee(route('api.v1.auth.ghost-accounts.claim'))
         ->assertSee('Possible Errors')
         ->assertSee('Claim Ghost Account')
-        ->assertSee('Refresh');
+        ->assertSee('Refresh')
+        ->assertSee('Project-scoped request and response examples')
+        ->assertDontSee('API Specification');
 });
 
 it('shows the global docs landing page in the admin panel', function () {
@@ -225,9 +228,11 @@ it('shows the global docs landing page in the admin panel', function () {
 
     $this->get(ProjectDocsIndex::getUrl(isAbsolute: false))
         ->assertOk()
-        ->assertSee('Docs Playbook')
-        ->assertSee('Integration Checklist')
+        ->assertSee('How to use the docs')
+        ->assertSee('Start here')
         ->assertSee('Docs Demo')
+        ->assertDontSee('API Concepts')
+        ->assertDontSee('Integration Checklist')
         ->assertSee(ProjectResource::getUrl('integration', ['record' => $project]), false)
         ->assertSee(ProjectResource::getUrl('api-reference', ['record' => $project]), false);
 });
@@ -251,13 +256,39 @@ it('shows product-specific dashboard widgets', function () {
         ->assertOk()
         ->assertSee('Projects')
         ->assertSee('Project Users')
-        ->assertSee('Continue Setup')
+        ->assertSee('Latest Project')
         ->assertSee('Docs Demo');
 
     Livewire::test(FeatureAdoptionOverview::class)
         ->assertOk()
         ->assertSee('Email Verification')
         ->assertSee('Ghost Accounts');
+});
+
+it('shows simplified project create copy in the admin panel', function () {
+    $owner = User::factory()->create();
+
+    authenticateFilamentOwner($owner);
+
+    Livewire::test(CreateProject::class)
+        ->assertOk()
+        ->assertSee('Integration Credentials')
+        ->assertSee('Set after save')
+        ->assertDontSee('This key is generated automatically and shown again on the integration details page after save.')
+        ->assertDontSee('Reserved for future server-to-server flows and safe rotation.');
+});
+
+it('shows simplified project user create copy in the admin panel', function () {
+    $owner = User::factory()->create();
+    Project::factory()->for($owner, 'owner')->create();
+
+    authenticateFilamentOwner($owner);
+
+    Livewire::test(CreateProjectUser::class)
+        ->assertOk()
+        ->assertSee('Choose a project to load custom fields.')
+        ->assertDontSee('Use the project schema to add profile and business fields like first_name, last_name, phone, department, or external_id.')
+        ->assertDontSee('Select a project first to load its custom user fields.');
 });
 
 it('shows the full project settings sub-navigation inside the admin panel', function () {

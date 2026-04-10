@@ -58,7 +58,6 @@ class ProjectUserForm
                     ])
                     ->columns(2),
                 Section::make('Custom Fields')
-                    ->description('Use the project schema to add profile and business fields like first_name, last_name, phone, department, or external_id.')
                     ->schema([
                         Grid::make(2)
                             ->schema(function (Get $get, ?ProjectUser $record): array {
@@ -67,8 +66,8 @@ class ProjectUserForm
                                 if (! filled($projectId)) {
                                     return [
                                         Placeholder::make('custom_fields_project_hint')
-                                            ->label('Custom Fields')
-                                            ->content('Select a project first to load its custom user fields.'),
+                                            ->hiddenLabel()
+                                            ->content('Choose a project to load custom fields.'),
                                     ];
                                 }
 

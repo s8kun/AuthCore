@@ -4,40 +4,23 @@ namespace App\Filament\Widgets\Dashboard;
 
 use App\Models\Project;
 use App\Models\User;
-use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Database\Eloquent\Builder;
 
 class FeatureAdoptionOverview extends StatsOverviewWidget
 {
-    protected ?string $heading = 'Feature Adoption';
+    protected ?string $heading = 'Auth Features';
 
-    protected ?string $description = 'See which project-level auth flows are enabled across your account.';
+    protected ?string $description = 'Enabled by project.';
 
     protected function getStats(): array
     {
         return [
-            Stat::make('Email Verification', number_format($this->countProjectsWithFeature('email_verification_enabled')))
-                ->description('Projects that require email verification before normal sign-in')
-                ->descriptionIcon(Heroicon::OutlinedShieldCheck)
-                ->icon(Heroicon::OutlinedShieldCheck)
-                ->color('success'),
-            Stat::make('OTP', number_format($this->countProjectsWithFeature('otp_enabled')))
-                ->description('Projects with one-time-password delivery and verification')
-                ->descriptionIcon(Heroicon::OutlinedBolt)
-                ->icon(Heroicon::OutlinedBolt)
-                ->color('warning'),
-            Stat::make('Forgot Password', number_format($this->countProjectsWithFeature('forgot_password_enabled')))
-                ->description('Projects with password recovery enabled')
-                ->descriptionIcon(Heroicon::OutlinedBookOpen)
-                ->icon(Heroicon::OutlinedBookOpen)
-                ->color('primary'),
-            Stat::make('Ghost Accounts', number_format($this->countProjectsWithFeature('ghost_accounts_enabled')))
-                ->description('Projects that support invite-first account creation')
-                ->descriptionIcon(Heroicon::OutlinedSparkles)
-                ->icon(Heroicon::OutlinedSparkles)
-                ->color('gray'),
+            Stat::make('Email Verification', number_format($this->countProjectsWithFeature('email_verification_enabled'))),
+            Stat::make('OTP', number_format($this->countProjectsWithFeature('otp_enabled'))),
+            Stat::make('Forgot Password', number_format($this->countProjectsWithFeature('forgot_password_enabled'))),
+            Stat::make('Ghost Accounts', number_format($this->countProjectsWithFeature('ghost_accounts_enabled'))),
         ];
     }
 

@@ -34,7 +34,7 @@ class ProjectDocsIndex extends Page
 
     public function getSubheading(): ?string
     {
-        return 'Learn the product shape first, then jump directly into a project-specific developer docs flow when you are ready to integrate.';
+        return 'Open developer docs and API references for each project.';
     }
 
     /**
@@ -44,7 +44,7 @@ class ProjectDocsIndex extends Page
     {
         return [
             Action::make('createProject')
-                ->label('Create Project')
+                ->label('New Project')
                 ->icon(Heroicon::Plus)
                 ->url(ProjectResource::getUrl('create')),
         ];
@@ -77,56 +77,17 @@ class ProjectDocsIndex extends Page
     {
         return [
             [
-                'title' => 'Choose the project you are integrating',
-                'description' => 'Every API request is project-scoped, so credentials, custom fields, and feature flags all depend on the selected project.',
+                'title' => 'Choose a project',
+                'description' => 'Docs, credentials, and custom fields are project-specific.',
             ],
             [
-                'title' => 'Open Developer Docs for the fastest happy path',
-                'description' => 'Use the project-specific docs page to grab the key headers, see the quickest login flow, and understand how this project behaves.',
+                'title' => 'Start with Developer Docs',
+                'description' => 'Use the quick-start page first.',
             ],
             [
-                'title' => 'Switch to API Reference when you need depth',
-                'description' => 'Once the basic flow is working, use the API reference page for detailed request and response examples plus failure cases.',
+                'title' => 'Use API Reference for detail',
+                'description' => 'Open it when you need exact requests and responses.',
             ],
-        ];
-    }
-
-    /**
-     * @return array<int, array{title: string, description: string}>
-     */
-    public function getApiConceptCards(): array
-    {
-        return [
-            [
-                'title' => 'Project-scoped credentials',
-                'description' => 'Every auth request needs the project key header so the platform can resolve the correct project settings and schema.',
-            ],
-            [
-                'title' => 'Short-lived access, long-lived refresh',
-                'description' => 'Clients use a bearer access token for authenticated requests and a refresh token to rotate sessions safely over time.',
-            ],
-            [
-                'title' => 'Built-in fields plus `custom_fields`',
-                'description' => 'Base auth fields stay consistent across projects, while `custom_fields` let each project define its own user contract.',
-            ],
-            [
-                'title' => 'Feature-aware flows',
-                'description' => 'Email verification, OTP, forgot password, and ghost accounts change the contract, so docs should always be read in the project context.',
-            ],
-        ];
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    public function getIntegrationChecklist(): array
-    {
-        return [
-            'Store the `X-Project-Key` for the environment you are integrating against.',
-            'Implement one happy-path sign-in or registration flow before building edge cases.',
-            'Handle access-token expiry by rotating refresh tokens on the client or backend.',
-            'Map project `custom_fields` exactly to the user schema before sending payloads.',
-            'Enable feature-specific UI only after confirming the project has those auth features turned on.',
         ];
     }
 
