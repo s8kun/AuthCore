@@ -1,210 +1,155 @@
 # Auth-as-a-Service
 
-Auth-as-a-Service is a Laravel application that gives each client project its own isolated authentication space.
+Auth-as-a-Service is a Laravel-based authentication platform that gives each client project its own isolated auth space.
 
-Instead of building auth separately for every app, the platform lets you create projects in a Filament admin panel, assign each project an API key, configure that project's auth rules and mail delivery, and then use a single project-scoped API for end-user registration, login, token refresh, OTP verification, password resets, and ghost-account invitations.
+Instead of rebuilding auth for every app, the platform lets a panel user create projects, configure project-specific auth and mail behavior, define custom user fields, and expose a single project-scoped API for registration, login, token refresh, OTP verification, password resets, and ghost-account invitations.
 
-## What The Product Includes
+## What This Project Does
 
-- project-scoped user registration and login
-- Laravel Sanctum access tokens plus database-backed refresh tokens
-- optional email verification on registration
-- OTP send, verify, and resend flows
+- project-scoped registration and login
+- Laravel Sanctum access tokens with custom database-backed refresh tokens
+- optional email verification during registration
+- project-scoped OTP send, verify, and resend flows
 - forgot-password and reset-password flows
-- ghost-account creation and claim flows
-- project-defined custom user fields with defaults, validation, and API visibility controls
-- per-project auth settings
-- per-project mail settings and email templates
-- request logging and auth-event logging
-- Filament admin UI for project operations
+- ghost-account create and claim flows
+- custom project user schemas with API visibility and uniqueness rules
+- per-project auth settings, mail settings, and email templates
+- API request logging and auth event logging
+- Filament admin panel with project docs and API reference pages
 
-## How It Is Structured
+## Identity Model
 
-There are two user layers in the application:
+There are two user layers:
 
-- platform users in the main `users` table use the Filament admin panel
-- project users in `project_users` belong to a specific client project and use the public API
+- `users`: platform owners who sign in to the Filament admin panel
+- `project_users`: end users who belong to a specific project and authenticate through the public API
 
-Each project has its own:
+Projects are the tenancy boundary. The same email can exist in multiple projects, but tokens are always restricted to the project that issued them.
 
-- API key
-- auth settings
-- mail settings
-- email templates
-- project users
-- project user field definitions and stored custom-field values
-- OTP records
-- password reset records
-- refresh tokens
-- API request logs
-- auth event logs
+Profile-style fields such as `first_name`, `last_name`, and `phone` are no longer built in on `project_users`. If a project needs them, they must be defined in the custom project user schema and sent under `custom_fields`.
 
-## Public API
+## Public Surfaces
 
-The public API lives under:
+- `/` redirects to `/admin`
+- `/admin` is the Filament control plane
+- `/api/v1/auth` is the public project-scoped auth API
+- `/docs/api` is the generated Scramble API UI
+- `/docs/api.json` is the generated Scramble OpenAPI document
+- [`API.md`](./API.md) is the hand-written API guide
+- [`PROJECT_OVERVIEW.md`](./PROJECT_OVERVIEW.md) is the architecture and product overview
 
-```text
-/api/v1/auth
-```
+## Project Credential Model
 
-Current endpoints:
-
-- `POST /register`
-- `POST /login`
-- `POST /refresh`
-- `POST /forgot-password`
-- `POST /reset-password`
-- `POST /send-otp`
-- `POST /verify-otp`
-- `POST /resend-otp`
-- `POST /ghost-accounts`
-- `POST /ghost-accounts/claim`
-- `GET /me`
-- `POST /logout`
-
-All requests require:
+Today, public API requests identify the project with:
 
 ```http
 X-Project-Key: {project_api_key}
-Accept: application/json
-Content-Type: application/json
 ```
 
-Authenticated endpoints also require:
+Protected routes also require:
 
 ```http
 Authorization: Bearer {access_token}
 ```
 
-## Current Auth Behavior
+The `projects` table also stores an `api_secret`, but it is not part of the current public auth flow yet. Likewise, `magic_link_enabled` exists in project auth settings, but there are no public magic-link endpoints in the current route set.
+
+## Main Auth Behavior
 
 ### Registration
 
-- registration is unique per project by email
-- if the email belongs to a pending unverified user in the same project, the record is retried instead of creating a duplicate
-- if the email belongs to an active verified user in the same project, registration fails with `422`
-- registration accepts an optional `custom_fields` object based on the active field definitions configured for that project
-- active custom fields can enforce defaults, required rules, enum options, numeric/date constraints, and per-project uniqueness
-- only custom fields marked as API-visible are returned in auth responses and `GET /me`
+- registration is scoped to the current project
+- existing verified users in the same project are rejected
+- existing pending users in the same project are retried on the same record
 - if email verification is enabled, registration returns `202 Accepted` and no tokens
 - if email verification is disabled, registration returns `201 Created` and issues tokens immediately
 
-### Login And Refresh
+### Login And Sessions
 
-- login requires an active, non-ghost account with a valid password
+- login requires an active, non-ghost project user with a valid password
 - pending email-verification users cannot log in
 - access tokens are Sanctum personal access tokens
-- refresh tokens are stored in the database, rotated on use, and revoked on logout or password reset
+- refresh tokens are stored separately, hashed, rotated on use, and revoked on logout or password reset
 
-### OTP
+### Custom Fields
 
-Supported OTP purposes:
+- project-specific fields are managed from the panel under Project User Schema
+- request payloads use `custom_fields`
+- undefined custom field keys are rejected
+- only fields marked `show_in_api` appear in API responses
+- defaults and uniqueness rules are enforced per project
 
-- `register_verify`
-- `login_verify`
-- `forgot_password`
-- `ghost_account_claim`
-- `email_verification`
+### OTP, Password Reset, And Ghost Accounts
 
-OTP delivery is queued and uses project mail settings and email templates.
-
-### Password Reset
-
-- forgot-password generates a reset token and emails a reset link
-- reset-password expects `email`, `token`, `password`, and `password_confirmation`
-- successful password resets revoke all active access and refresh tokens for the project user
-
-### Ghost Accounts
-
-- ghost accounts are invitation-style project users
-- they can be pre-created by project admins through the API or the panel
-- claiming a ghost account verifies the OTP, optionally sets a password, converts the record into a normal account, and returns tokens
+- OTP purposes: `register_verify`, `login_verify`, `forgot_password`, `ghost_account_claim`, `email_verification`
+- OTP emails are queued and use project mail settings and templates
+- password resets revoke active access and refresh tokens after success
+- ghost accounts are optional and project-scoped
 
 ## Admin Panel
 
-The Filament admin panel is available at:
+The Filament panel currently exposes:
 
-```text
-/admin
-```
-
-Current admin resources include:
-
+- Dashboard widgets for platform overview and feature adoption
 - Projects
 - Project Users
 - API Request Logs
 - Auth Event Logs
-
-Inside each project, the panel also exposes:
-
-- integration details
-- auth settings
-- mail settings
-- email templates
-- project user schema management
+- project-specific pages for:
+  - integration details
+  - API reference
+  - auth settings
+  - mail settings
+  - email templates
+  - project user schema
+  - global project docs index
 
 ## Tech Stack
 
-- PHP 8.3+
-- Laravel 13
-- Filament 4
-- Livewire 3
-- Laravel Sanctum 4
-- Tailwind CSS 4
-- Pest 4
-- Scramble for OpenAPI generation support
+- PHP `^8.3`
+- Laravel `13`
+- Filament `4`
+- Livewire `3`
+- Laravel Sanctum `4`
+- Tailwind CSS `4`
+- Pest `4`
+- Scramble for generated API documentation
 
 ## Local Setup
 
-1. Install dependencies.
+### Fastest Setup
+
+```bash
+composer run setup
+php artisan db:seed --no-interaction
+composer run dev
+```
+
+That setup script installs Composer dependencies, copies `.env` when needed, generates the app key, runs migrations, installs frontend packages, and builds assets.
+
+### Manual Setup
 
 ```bash
 composer install
-npm install
-```
-
-2. Create the environment file and generate an app key.
-
-```bash
 cp .env.example .env
 php artisan key:generate
-```
-
-3. Configure the database in `.env` and run migrations.
-
-```bash
 php artisan migrate
+npm install
+npm run build
+php artisan db:seed --no-interaction
+composer run dev
 ```
 
-4. Seed a local panel user if you want sample access.
-
-```bash
-php artisan db:seed
-```
-
-The default seeded panel user is:
+The seeded panel user is:
 
 - email: `test@example.com`
 - password: `password`
 
-5. Start the app for local development.
-
-```bash
-composer run dev
-```
-
-That command starts:
-
-- the Laravel server
-- the queue worker
-- Laravel Pail
-- the Vite dev server
-
-Keep the queue worker running when testing OTP and email flows because mail delivery is queued.
+Keep the queue worker running while testing OTP, forgot-password, welcome-email, or ghost-invite flows because mail delivery is queued.
 
 ## Testing
 
-Run the test suite with:
+Run the suite with:
 
 ```bash
 php artisan test --compact
@@ -212,6 +157,11 @@ php artisan test --compact
 
 ## Documentation
 
-- API reference: [`API.md`](./API.md)
-- Project overview: [`PROJECT_OVERVIEW.md`](./PROJECT_OVERVIEW.md)
-- OpenAPI document: [`api.json`](./api.json)
+- Product and architecture overview: [`PROJECT_OVERVIEW.md`](./PROJECT_OVERVIEW.md)
+- Public API guide: [`API.md`](./API.md)
+- Single-project Store App guide: [`STORE_APP_INTEGRATION.md`](./STORE_APP_INTEGRATION.md)
+- Next.js Store App guide: [`STORE_APP_NEXTJS_INTEGRATION.md`](./STORE_APP_NEXTJS_INTEGRATION.md)
+- Laravel Store App guide: [`STORE_APP_LARAVEL_INTEGRATION.md`](./STORE_APP_LARAVEL_INTEGRATION.md)
+- Static contract file: [`api.json`](./api.json)
+- Generated docs UI: `/docs/api`
+- Generated docs JSON: `/docs/api.json`
